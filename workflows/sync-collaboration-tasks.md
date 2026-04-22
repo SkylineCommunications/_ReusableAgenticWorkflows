@@ -1,43 +1,31 @@
 ---
 name: Sync Collaboration Tasks to GitHub Issues
-description: >
-  Reusable agentic workflow that syncs tasks from the Skyline Collaboration API
-  to GitHub Issues. Designed to be called via workflow_call from other repositories,
-  which can schedule it (e.g., every 5 minutes) using a cron trigger. Creates new
-  issues for tasks that don't yet have a corresponding issue; existing issues are
-  not modified. Applies labels by type and priority, assigns team members, and asks
-  clarifying questions on vague descriptions.
-source: SkylineCommunications/_ReusableAgenticWorkflows/.github/workflows/sync-collaboration-tasks.md@main
+description: |
+  Syncs tasks from the Skyline Collaboration API to GitHub Issues.
+  Runs every 5 minutes to fetch all tasks for a configured project and creates
+  new GitHub issues for tasks that don't yet have a corresponding issue.
+  Applies type and priority labels, assigns team members based on task assignees,
+  and posts clarifying questions on vague or short descriptions.
+source: SkylineCommunications/_ReusableAgenticWorkflows/workflows/sync-collaboration-tasks.md@main
 on:
-  workflow_call:
-    inputs:
-      collaboration_project_id:
-        description: >
-          Collaboration Project ID. If omitted, falls back to the
-          COLLABORATION_PROJECT_ID repository variable of the calling repo.
-        required: false
-        type: string
-    secrets:
-      COLLABORATION_API_TOKEN:
-        description: "Bearer token for authenticating with the Skyline Collaboration API."
-        required: true
+  schedule:
+    - cron: "*/5 * * * *"
   workflow_dispatch:
-    inputs:
-      collaboration_project_id:
-        description: "Collaboration Project ID (falls back to COLLABORATION_PROJECT_ID repo variable)"
-        required: false
-        type: string
+
 permissions:
   issues: read
   contents: read
   pull-requests: read
+
 tools:
   github:
     toolsets: [default]
   web-fetch: {}
+
 network:
   allowed:
     - skyline-api.dataminer.services
+
 safe-outputs:
   create-issue:
     max: 50
@@ -45,9 +33,11 @@ safe-outputs:
     max: 100
   update-issue:
     max: 50
+
 env:
   COLLABORATION_API_BASE_URL: https://skyline-api.dataminer.services
-  COLLABORATION_PROJECT_ID: ${{ inputs.collaboration_project_id || vars.COLLABORATION_PROJECT_ID }}
+  COLLABORATION_PROJECT_ID: ${{ vars.COLLABORATION_PROJECT_ID }}
+
 secrets:
   COLLABORATION_API_TOKEN:
     value: ${{ secrets.COLLABORATION_API_TOKEN }}
@@ -71,7 +61,7 @@ Collaboration API into GitHub Issues in the repository where this workflow is ru
 
 Check that `COLLABORATION_PROJECT_ID` is not empty. If it is empty, stop and output a
 clear error message explaining that the `COLLABORATION_PROJECT_ID` repository variable
-(or workflow input) must be set.
+must be set before using this workflow.
 
 ### 2. Fetch tasks from the Collaboration API
 
@@ -116,9 +106,9 @@ skip this task entirely — do **not** create a duplicate.
 
 Map the task's **type** to a GitHub label:
 
-| Collaboration type | GitHub label  |
-|--------------------|---------------|
-| Bug                | `type: Bug`   |
+| Collaboration type | GitHub label    |
+|--------------------|-----------------|
+| Bug                | `type: Bug`     |
 | Feature            | `type: Feature` |
 | Investigation      | `type: Investigation` |
 | Any other value    | `type: <TypeName>` (preserve original casing) |
@@ -134,7 +124,7 @@ Map the task's **priority** to a GitHub label:
 | Unknown / empty        | `priority: Normal`   |
 
 Only include labels that actually exist in this repository. If a label does not exist,
-skip it (do not fail) and mention the missing label in the issue body.
+skip it and mention the missing label in the issue body instead.
 
 #### 4c. Determine assignee
 
