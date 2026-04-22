@@ -148,9 +148,14 @@ If the task has an assignee field, try to identify the corresponding GitHub user
 
 Follow these steps:
 1. Map the Collaboration assignee (name or email) to a GitHub username.
-2. **Verify org membership**: use the GitHub API to confirm the resolved username is a
-   member of the `SkylineCommunications` organization
-   (`GET /orgs/SkylineCommunications/members/<username>`).
+2. **Verify org membership**: use the GitHub MCP `search_users` tool with the query
+   `<username> org:SkylineCommunications` to check whether the resolved username
+   belongs to the `SkylineCommunications` organization. Confirm membership only if
+   the search returns at least one result whose `login` exactly matches the resolved
+   username (case-insensitive). Note: this approach checks **public** org membership
+   only; users whose org membership is set to private will not appear in search results
+   and will be treated as unverified (their name goes into the issue body instead of
+   the `assignees` list — this is the safe fallback).
 3. Only if **both** steps succeed (username resolved **and** confirmed org member),
    include the username in the `assignees` list.
 4. In all other cases — username cannot be resolved, or user is not an org member —
