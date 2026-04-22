@@ -34,8 +34,6 @@ safe-outputs:
     max: 100
   update-issue:
     max: 50
-  create-label:
-    max: 20
 
 env:
   COLLABORATION_API_BASE_URL: https://skyline-api.dataminer.services
