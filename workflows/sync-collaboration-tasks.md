@@ -2,14 +2,15 @@
 name: Sync Collaboration Tasks to GitHub Issues
 description: |
   Syncs tasks from the Skyline Collaboration API to GitHub Issues.
-  Runs every 5 minutes to fetch all tasks for a configured project and creates
+  Runs daily to fetch all tasks for a configured project and creates
   new GitHub issues for tasks that don't yet have a corresponding issue.
-  Applies type and priority labels, assigns team members based on task assignees,
+  Applies type and priority labels (creating them if they don't exist),
+  assigns team members based on task assignees,
   and posts clarifying questions on vague or short descriptions.
 source: SkylineCommunications/_ReusableAgenticWorkflows/workflows/sync-collaboration-tasks.md@main
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0 9 * * *"
   workflow_dispatch:
 
 permissions:
@@ -33,6 +34,8 @@ safe-outputs:
     max: 100
   update-issue:
     max: 50
+  create-label:
+    max: 20
 
 env:
   COLLABORATION_API_BASE_URL: https://skyline-api.dataminer.services
@@ -51,7 +54,7 @@ Collaboration API into GitHub Issues in the repository where this workflow is ru
 
 ## Configuration
 
-- **Collaboration API Base URL**: `https://skyline-api.dataminer.services`
+- **Collaboration API Base URL**: available in the `COLLABORATION_API_BASE_URL` environment variable
 - **Project ID**: available in the `COLLABORATION_PROJECT_ID` environment variable
 - **API Token**: available in the `COLLABORATION_API_TOKEN` environment variable — use it as a Bearer token in all Collaboration API requests
 
@@ -65,10 +68,10 @@ must be set before using this workflow.
 
 ### 2. Fetch tasks from the Collaboration API
 
-Make an HTTP GET request:
+Make an HTTP GET request using the `COLLABORATION_API_BASE_URL` environment variable:
 
 ```
-GET https://skyline-api.dataminer.services/api/dcp/Tasks/ByProject?projects=<COLLABORATION_PROJECT_ID>
+GET $COLLABORATION_API_BASE_URL/api/dcp/Tasks/ByProject?projects=<COLLABORATION_PROJECT_ID>
 Authorization: Bearer <COLLABORATION_API_TOKEN>
 ```
 
@@ -84,8 +87,10 @@ If the API returns an error, stop and report the HTTP status code and error mess
 
 ### 3. Retrieve existing GitHub Issues
 
-Use the GitHub tools to list all issues in this repository (open and closed).
-You will use these to detect duplicates.
+Use the GitHub search tools to find issues in this repository whose body contains the
+`<!-- collaboration-task-id:` marker. Build an index of task IDs from matching issues
+to detect duplicates efficiently (avoid listing all open and closed issues, which is
+slow and may hit API rate limits).
 
 ### 4. Process each task
 
@@ -104,34 +109,56 @@ skip this task entirely — do **not** create a duplicate.
 
 #### 4b. Determine labels
 
-Map the task's **type** to a GitHub label:
+Map the task's **type** to an industry-standard GitHub label:
 
-| Collaboration type | GitHub label    |
-|--------------------|-----------------|
-| Bug                | `type: Bug`     |
-| Feature            | `type: Feature` |
-| Investigation      | `type: Investigation` |
-| Any other value    | `type: <TypeName>` (preserve original casing) |
+| Collaboration type | GitHub label    | Color     | Description                          |
+|--------------------|-----------------|-----------|--------------------------------------|
+| Bug                | `bug`           | `#d73a4a` | Something isn't working              |
+| Feature            | `enhancement`   | `#a2eeef` | New feature or request               |
+| Investigation      | `question`      | `#d876e3` | Further information is requested     |
+| Any other value    | `type: <TypeName>` | `#e4e669` | (preserve original casing)        |
 
 Map the task's **priority** to a GitHub label:
 
-| Collaboration priority | GitHub label         |
-|------------------------|----------------------|
-| Critical               | `priority: Critical` |
-| High                   | `priority: High`     |
-| Normal                 | `priority: Normal`   |
-| Low                    | `priority: Low`      |
-| Unknown / empty        | `priority: Normal`   |
+| Collaboration priority | GitHub label         | Color     |
+|------------------------|----------------------|-----------|
+| Critical               | `priority: critical` | `#b60205` |
+| High                   | `priority: high`     | `#e99695` |
+| Normal                 | `priority: medium`   | `#fbca04` |
+| Low                    | `priority: low`      | `#0075ca` |
+| Unknown / empty        | `priority: medium`   | `#fbca04` |
 
-Only include labels that actually exist in this repository. If a label does not exist,
-skip it and mention the missing label in the issue body instead.
+> **Note:** "Normal" is intentionally mapped to `priority: medium` to align with the
+> industry-standard low / medium / high / critical naming used by GitHub, Microsoft,
+> and other open-source projects.
+
+For each label: first check whether it already exists in the repository. If it does
+not exist, **create it** using the color and description from the tables above before
+applying it to the issue. Do not skip labels — always ensure they exist before use.
 
 #### 4c. Determine assignee
 
 If the task has an assignee field, try to identify the corresponding GitHub username.
-- If you can determine the GitHub username, include it in the `assignees` list.
-- If you cannot confidently map the assignee to a GitHub username, add a note in the
-  issue body: `**Assignee (Collaboration):** <assignee name or email>`.
+
+> **⚠️ Security requirement:** Only assign users who are **confirmed members of the
+> `SkylineCommunications` GitHub organization**. Assigning a user who is not an org
+> member causes GitHub to send them a repository invitation, which would grant an
+> outsider access to the repository — a violation of security policy. This must never
+> happen.
+
+Follow these steps:
+1. Map the Collaboration assignee (name or email) to a GitHub username.
+2. **Verify org membership**: use the GitHub API to confirm the resolved username is a
+   member of the `SkylineCommunications` organization
+   (`GET /orgs/SkylineCommunications/members/<username>`).
+   This REST call is used instead of the MCP `search_users` tool because the MCP
+   user-search only surfaces **public** org membership; users who have their membership
+   set to private — a common situation — would be incorrectly excluded.
+3. Only if **both** steps succeed (username resolved **and** confirmed org member),
+   include the username in the `assignees` list.
+4. In all other cases — username cannot be resolved, or user is not an org member —
+   do **not** add them to `assignees`. Instead, add a note in the issue body:
+   `**Collaboration Assignee:** <assignee name or email>`.
 
 #### 4d. Build the issue body
 
@@ -144,6 +171,7 @@ Use this template for the issue body:
 **Type:** <task type>
 **Priority:** <task priority>
 **Collaboration Assignee:** <assignee name or email, or "Unassigned">
+**Missing Labels:** <comma-separated list of labels that could not be created, or omit this line if all labels were applied>
 
 *Synced automatically from the Skyline Collaboration API.*
 
@@ -155,10 +183,15 @@ duplicate-detection marker used on every subsequent run.
 
 #### 4e. Create the GitHub Issue
 
+> **Note:** This workflow is capped at creating **50 issues per run**. If there are
+> more than 50 new tasks to sync, stop processing once the cap is reached and include
+> a clear message in the run summary explaining that not all tasks were synced; the
+> remaining tasks will be picked up on the next scheduled run.
+
 Create a new issue with:
 - **title**: the task's name/title
 - **body**: the body from step 4d
-- **labels**: the mapped labels (type + priority) that exist in the repo
+- **labels**: the mapped labels (type + priority) — all labels must be ensured to exist before applying (see step 4b)
 - **assignees**: the resolved GitHub username(s), if any
 
 #### 4f. Ask clarifying questions on vague tasks

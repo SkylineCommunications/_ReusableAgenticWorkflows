@@ -1,12 +1,12 @@
 # ✨ Reusable Agentic Workflows
 
-A collection of reusable [GitHub Agentic Workflows](https://github.github.com/gh-aw/) for Skyline Communications repositories.
+A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-aw/) for Skyline Communications repositories.
 
 ## 📂 Available Workflows
 
 ### Integration Workflows
 
-- [🔄 Sync Collaboration Tasks](docs/sync-collaboration-tasks.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues every 5 minutes
+- [🔄 Sync Collaboration Tasks](docs/sync-collaboration-tasks.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues daily
 
 ## 🔧 Installation
 
