@@ -2,9 +2,11 @@
 name: Sync Collaboration Tasks to GitHub Issues
 description: >
   Reusable agentic workflow that syncs tasks from the Skyline Collaboration API
-  to GitHub Issues. Fetches tasks every 5 minutes and creates or updates issues
-  for new tasks, applying labels by type and priority, assigning team members,
-  and asking clarifying questions on vague descriptions.
+  to GitHub Issues. Designed to be called via workflow_call from other repositories,
+  which can schedule it (e.g., every 5 minutes) using a cron trigger. Creates new
+  issues for tasks that don't yet have a corresponding issue; existing issues are
+  not modified. Applies labels by type and priority, assigns team members, and asks
+  clarifying questions on vague descriptions.
 source: SkylineCommunications/_ReusableAgenticWorkflows/.github/workflows/sync-collaboration-tasks.md@main
 on:
   workflow_call:
