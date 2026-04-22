@@ -83,6 +83,9 @@ to regenerate the lock file.
 - Issues matching the `<!-- collaboration-task-id: ... -->` marker (searched via GitHub
   search to detect duplicates efficiently)
 - The list of labels available in the repository (to check before creating missing ones)
+- `SkylineCommunications` organization membership, to verify that a resolved GitHub
+  username is an org member before assigning them to an issue (users outside the org
+  are never assigned — doing so would send a repository invitation, violating security policy)
 
 ## What it reads from the Collaboration API
 
@@ -116,7 +119,8 @@ API and the GitHub API.
 - **Answer clarifying questions** — when the workflow posts a clarifying-question
   comment, update the issue body or reply in the comment thread with the missing detail
 - **Resolve assignee mapping** — if the workflow cannot map a Collaboration assignee to
-  a GitHub username, the assignee name is included in the issue body; manually assign
-  the issue to the correct team member
+  a GitHub username, or the user is not a member of the `SkylineCommunications` org,
+  the assignee name is included in the issue body; manually assign the issue to the
+  correct team member
 - **Large backlogs** — if more than 50 tasks are unsynced, the workflow will sync the
   first 50 and note the remainder in the run summary; subsequent runs will pick up the rest

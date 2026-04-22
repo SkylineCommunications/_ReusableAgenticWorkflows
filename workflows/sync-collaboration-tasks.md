@@ -139,9 +139,23 @@ applying it to the issue. Do not skip labels — always ensure they exist before
 #### 4c. Determine assignee
 
 If the task has an assignee field, try to identify the corresponding GitHub username.
-- If you can determine the GitHub username, include it in the `assignees` list.
-- If you cannot confidently map the assignee to a GitHub username, add a note in the
-  issue body: `**Collaboration Assignee:** <assignee name or email>`.
+
+> **⚠️ Security requirement:** Only assign users who are **confirmed members of the
+> `SkylineCommunications` GitHub organization**. Assigning a user who is not an org
+> member causes GitHub to send them a repository invitation, which would grant an
+> outsider access to the repository — a violation of security policy. This must never
+> happen.
+
+Follow these steps:
+1. Map the Collaboration assignee (name or email) to a GitHub username.
+2. **Verify org membership**: use the GitHub API to confirm the resolved username is a
+   member of the `SkylineCommunications` organization
+   (`GET /orgs/SkylineCommunications/members/<username>`).
+3. Only if **both** steps succeed (username resolved **and** confirmed org member),
+   include the username in the `assignees` list.
+4. In all other cases — username cannot be resolved, or user is not an org member —
+   do **not** add them to `assignees`. Instead, add a note in the issue body:
+   `**Collaboration Assignee:** <assignee name or email>`.
 
 #### 4d. Build the issue body
 
