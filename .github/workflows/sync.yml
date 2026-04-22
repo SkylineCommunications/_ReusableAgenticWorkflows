@@ -73,16 +73,19 @@ jobs:
             exit 0
           fi
 
-          pr_body="Automated sync of workflow files from [microsoft/hve-core](https://github.com/microsoft/hve-core).
+          pr_body="$(cat <<'EOF'
+          Automated sync of workflow files from [microsoft/hve-core](https://github.com/microsoft/hve-core).
 
-**Files updated:**
-- .github/workflows/issue-triage.md
-- .github/workflows/issue-implement.md
-- .github/workflows/pr-review.md
-- .github/workflows/dependency-pr-review.md
+          **Files updated:**
+          - .github/workflows/issue-triage.md
+          - .github/workflows/issue-implement.md
+          - .github/workflows/pr-review.md
+          - .github/workflows/dependency-pr-review.md
 
----
-_This PR was opened automatically by the sync workflow._"
+          ---
+          _This PR was opened automatically by the sync workflow._
+          EOF
+          )"
 
           if gh label list --search "dependencies" --json name --jq '.[] | select(.name == "dependencies") | .name' | grep -q '^dependencies$'; then
             gh pr create \
