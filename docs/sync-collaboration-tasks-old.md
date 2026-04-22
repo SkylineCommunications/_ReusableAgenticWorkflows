@@ -6,9 +6,9 @@
 
 The [Sync Collaboration Tasks workflow](../workflows/sync-collaboration-tasks.md?plain=1)
 runs daily (and can be triggered manually) to fetch tasks from a configured Collaboration
-project and create GitHub Issues for any tasks that don't already have a corresponding
-issue. It labels issues using industry-standard GitHub labels (creating them automatically
-if they don't exist), assigns them to the right team member, and posts a
+project and then intelligently create or update GitHub Issues based on semantic
+relevance. It labels issues using canonical labels declared in `.github/labels.yml`,
+assigns them to the right team member, and posts a
 clarifying comment when a task description is too short or vague.
 
 ## Installation
@@ -41,26 +41,30 @@ Set these in your repository under **Settings → Secrets and variables → Acti
 
 ### Labels
 
-The workflow uses industry-standard GitHub labels and **automatically creates them**
-if they don't already exist in your repository. No manual label setup is required.
+Labels follow the hve-core declarative model:
+- Declare labels in `.github/labels.yml` with `name`, `color` (bare hex, no `#`), and `description`
+- Sync labels via `.github/workflows/label-sync.yml`
+- The task-sync workflow does **not** create labels at runtime
+
+Type and priority labels expected by this workflow:
 
 **Type labels** (mapped from Collaboration task type):
 
-| Collaboration type | GitHub label    | Color     |
-|--------------------|-----------------|-----------|
-| Bug                | `bug`           | `#d73a4a` |
-| Feature            | `enhancement`   | `#a2eeef` |
-| Investigation      | `question`      | `#d876e3` |
-| Other              | `type: <name>`  | `#e4e669` |
+| Collaboration type | GitHub label  |
+|--------------------|---------------|
+| Bug                | `bug`         |
+| Feature            | `enhancement` |
+| Investigation      | `question`    |
+| Other              | `type: other` |
 
 **Priority labels** (mapped from Collaboration task priority):
 
-| Collaboration priority | GitHub label         | Color     |
-|------------------------|----------------------|-----------|
-| Critical               | `priority: critical` | `#b60205` |
-| High                   | `priority: high`     | `#e99695` |
-| Normal                 | `priority: medium`   | `#fbca04` |
-| Low                    | `priority: low`      | `#0075ca` |
+| Collaboration priority | GitHub label         |
+|------------------------|----------------------|
+| Critical               | `priority: critical` |
+| High                   | `priority: high`     |
+| Normal                 | `priority: medium`   |
+| Low                    | `priority: low`      |
 
 > **Note:** "Normal" is intentionally mapped to `priority: medium` to align with the
 > industry-standard low / medium / high / critical naming used by GitHub, Microsoft,
@@ -80,9 +84,9 @@ to regenerate the lock file.
 
 ## What it reads from GitHub
 
-- Issues matching the `<!-- collaboration-task-id: ... -->` marker (searched via GitHub
-  search to detect duplicates efficiently)
-- The list of labels available in the repository (to check before creating missing ones)
+- Candidate issues based on marker, labels, and textual relevance to perform semantic
+  deduplication
+- The list of labels available in the repository (to detect label-sync drift)
 - `SkylineCommunications` organization membership, to verify that a resolved GitHub
   username is an org member before assigning them to an issue (users outside the org
   are never assigned — doing so would send a repository invitation, violating security policy)
@@ -93,19 +97,17 @@ to regenerate the lock file.
   the configured project, including task ID, title, description, type, priority, and
   assignee
 
-## What it creates
+## What it creates or updates
 
-- **GitHub Labels** — industry-standard type and priority labels are created automatically
-  if they don't yet exist in the repository
-- **GitHub Issues** — one per new Collaboration task (up to 50 per run), with:
+- **GitHub Issues** — created or updated from Collaboration tasks, with:
   - Title from the task name
   - Body containing the task description, type, priority, assignee, and the hidden
-    `<!-- collaboration-task-id: ... -->` duplicate-detection marker
+    `<!-- collaboration-task-id: ... -->` marker plus a semantic sync signature marker
   - Labels for task type (`bug`, `enhancement`, `question`, etc.) and priority
     (`priority: critical`, `priority: high`, etc.)
   - Assignee mapped from the Collaboration assignee field (when resolvable to a GitHub username)
-- **Issue comments** — a clarifying-question comment on any newly created issue whose
-  description is fewer than 50 characters or consists only of generic words
+- **Issue comments** — clarifying-question comments on vague tasks and cross-link comments
+  when related tasks are split into separate issues
 
 ## What web searches it performs
 
@@ -122,5 +124,7 @@ API and the GitHub API.
   a GitHub username, or the user is not a member of the `SkylineCommunications` org,
   the assignee name is included in the issue body; manually assign the issue to the
   correct team member
-- **Large backlogs** — if more than 50 tasks are unsynced, the workflow will sync the
-  first 50 and note the remainder in the run summary; subsequent runs will pick up the rest
+- **Large backlogs** — if per-run create/update caps are reached, the workflow reports
+  the remainder in the run summary and later runs continue from there
+- **Label drift** — if expected labels are missing in the repo, run the label-sync
+  workflow and re-run task sync

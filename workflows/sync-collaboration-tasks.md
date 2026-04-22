@@ -3,8 +3,8 @@ name: Sync Collaboration Tasks to GitHub Issues
 description: |
   Syncs tasks from the Skyline Collaboration API to GitHub Issues.
   Runs daily to fetch all tasks for a configured project and creates
-  new GitHub issues for tasks that don't yet have a corresponding issue.
-  Applies type and priority labels (creating them if they don't exist),
+  or updates GitHub issues for tasks based on semantic relevance.
+  Applies canonical type and priority labels existant on repo,
   assigns team members based on task assignees,
   and posts clarifying questions on vague or short descriptions.
 source: SkylineCommunications/_ReusableAgenticWorkflows/workflows/sync-collaboration-tasks.md@main
@@ -64,6 +64,10 @@ Check that `COLLABORATION_PROJECT_ID` is not empty. If it is empty, stop and out
 clear error message explaining that the `COLLABORATION_PROJECT_ID` repository variable
 must be set before using this workflow.
 
+Check that `COLLABORATION_API_TOKEN` is not empty. If it is empty, stop and output a
+clear error message explaining that the `COLLABORATION_API_TOKEN` repository variable
+must be set before using this workflow.
+
 ### 2. Fetch tasks from the Collaboration API
 
 Make an HTTP GET request using the `COLLABORATION_API_BASE_URL` environment variable:
@@ -83,56 +87,8 @@ Parse the JSON response into a list of tasks. Each task has at minimum:
 
 If the API returns an error, stop and report the HTTP status code and error message.
 
-### 3. Retrieve existing GitHub Issues
 
-Use the GitHub search tools to find issues in this repository whose body contains the
-`<!-- collaboration-task-id:` marker. Build an index of task IDs from matching issues
-to detect duplicates efficiently (avoid listing all open and closed issues, which is
-slow and may hit API rate limits).
 
-### 4. Process each task
-
-For every task returned by the Collaboration API:
-
-#### 4a. Duplicate check
-
-Search the existing issues for a body that contains the marker:
-
-```
-<!-- collaboration-task-id: TASK_ID -->
-```
-
-where `TASK_ID` is the task's unique identifier. If a matching issue already exists,
-skip this task entirely — do **not** create a duplicate.
-
-#### 4b. Determine labels
-
-Map the task's **type** to an industry-standard GitHub label:
-
-| Collaboration type | GitHub label    | Color     | Description                          |
-|--------------------|-----------------|-----------|--------------------------------------|
-| Bug                | `bug`           | `#d73a4a` | Something isn't working              |
-| Feature            | `enhancement`   | `#a2eeef` | New feature or request               |
-| Investigation      | `question`      | `#d876e3` | Further information is requested     |
-| Any other value    | `type: <TypeName>` | `#e4e669` | (preserve original casing)        |
-
-Map the task's **priority** to a GitHub label:
-
-| Collaboration priority | GitHub label         | Color     |
-|------------------------|----------------------|-----------|
-| Critical               | `priority: critical` | `#b60205` |
-| High                   | `priority: high`     | `#e99695` |
-| Normal                 | `priority: medium`   | `#fbca04` |
-| Low                    | `priority: low`      | `#0075ca` |
-| Unknown / empty        | `priority: medium`   | `#fbca04` |
-
-> **Note:** "Normal" is intentionally mapped to `priority: medium` to align with the
-> industry-standard low / medium / high / critical naming used by GitHub, Microsoft,
-> and other open-source projects.
-
-For each label: first check whether it already exists in the repository. If it does
-not exist, **create it** using the color and description from the tables above before
-applying it to the issue. Do not skip labels — always ensure they exist before use.
 
 #### 4c. Determine assignee
 
@@ -158,48 +114,17 @@ Follow these steps:
    do **not** add them to `assignees`. Instead, add a note in the issue body:
    `**Collaboration Assignee:** <assignee name or email>`.
 
-#### 4d. Build the issue body
 
-Use this template for the issue body:
-
-```
-<task description>
-
----
-**Type:** <task type>
-**Priority:** <task priority>
-**Collaboration Assignee:** <assignee name or email, or "Unassigned">
-**Missing Labels:** <comma-separated list of labels that could not be created, or omit this line if all labels were applied>
-
-*Synced automatically from the Skyline Collaboration API.*
-
-<!-- collaboration-task-id: TASK_ID -->
-```
-
-The `<!-- collaboration-task-id: TASK_ID -->` HTML comment is **mandatory** — it is the
-duplicate-detection marker used on every subsequent run.
-
-#### 4e. Create the GitHub Issue
-
-> **Note:** This workflow is capped at creating **50 issues per run**. If there are
-> more than 50 new tasks to sync, stop processing once the cap is reached and include
-> a clear message in the run summary explaining that not all tasks were synced; the
-> remaining tasks will be picked up on the next scheduled run.
-
-Create a new issue with:
-- **title**: the task's name/title
-- **body**: the body from step 4d
-- **labels**: the mapped labels (type + priority) — all labels must be ensured to exist before applying (see step 4b)
-- **assignees**: the resolved GitHub username(s), if any
 
 #### 4f. Ask clarifying questions on vague tasks
 
-After creating the issue, check whether the task description is unclear:
+After creating or substantially updating the issue, check whether the task description
+is unclear:
 - The description (excluding the sync footer) is fewer than 50 characters, **or**
 - The description consists only of generic words such as: fix, investigate, test, todo,
   tbd, n/a, unknown, check, review, update, change
 
-If either condition is true, post a comment on the newly created issue:
+If either condition is true, post a comment on the issue:
 
 ```
 Hi! 👋 This task was imported from the Collaboration API but the description seems a
@@ -217,6 +142,9 @@ Thank you! 🙏
 
 After processing all tasks, output a brief summary:
 - Number of tasks fetched
-- Number of new issues created
-- Number of duplicate tasks skipped
+- Number of issues created
+- Number of issues updated
+- Number of tasks skipped (not relevant / insufficient confidence)
+- Number of cross-links added
 - Number of clarification comments posted
+- Missing-label warnings (if any)

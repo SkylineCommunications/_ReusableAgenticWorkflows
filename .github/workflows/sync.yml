@@ -1,0 +1,98 @@
+name: Sync agentic workflows from microsoft/hve-core
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: workflow-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  HVE_CORE_REPO: microsoft/hve-core
+  HVE_CORE_REF: main
+  TARGET_DIR: workflows
+  SYNC_BRANCH: chore/sync-workflows
+  BASE_BRANCH: main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch workflow files from hve-core
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$TARGET_DIR"
+
+          files=(
+            issue-triage.md
+            issue-implement.md
+            pr-review.md
+            dependency-pr-review.md
+          )
+
+          for file in "${files[@]}"; do
+            url="https://raw.githubusercontent.com/$HVE_CORE_REPO/$HVE_CORE_REF/.github/workflows/$file"
+            curl -fsSL "$url" -o "$TARGET_DIR/$file"
+          done
+
+      - name: Create or update sync pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -B "$SYNC_BRANCH"
+          git add "$TARGET_DIR"/*.md
+
+          if git diff --staged --quiet; then
+            echo "No changes; already up to date."
+            exit 0
+          fi
+
+          git commit -m "chore: sync workflows from microsoft/hve-core"
+          git push origin "$SYNC_BRANCH" --force-with-lease
+
+          pr_number="$(gh pr list --head "$SYNC_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number')"
+          if [ -n "$pr_number" ]; then
+            echo "Open PR #$pr_number already exists for $SYNC_BRANCH."
+            exit 0
+          fi
+
+          pr_body="Automated sync of workflow files from [microsoft/hve-core](https://github.com/microsoft/hve-core).
+
+**Files updated:**
+- .github/workflows/issue-triage.md
+- .github/workflows/issue-implement.md
+- .github/workflows/pr-review.md
+- .github/workflows/dependency-pr-review.md
+
+---
+_This PR was opened automatically by the sync workflow._"
+
+          if gh label list --search "dependencies" --json name --jq '.[] | select(.name == "dependencies") | .name' | grep -q '^dependencies$'; then
+            gh pr create \
+              --title "chore: sync agentic workflows from microsoft/hve-core" \
+              --body "$pr_body" \
+              --label "dependencies" \
+              --base "$BASE_BRANCH"
+          else
+            gh pr create \
+              --title "chore: sync agentic workflows from microsoft/hve-core" \
+              --body "$pr_body" \
+              --base "$BASE_BRANCH"
+          fi
