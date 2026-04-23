@@ -1,27 +1,19 @@
 ---
-name: Sync Collaboration Tasks to GitHub Issues
-description: |
-  Syncs tasks from the Skyline Collaboration API to GitHub Issues.
-  Runs daily to fetch all tasks for a configured project and creates
-  or updates GitHub issues for tasks based on semantic relevance.
-  Applies canonical type and priority labels existant on repo,
-  assigns team members based on task assignees,
-  and posts clarifying questions on vague or short descriptions.
-source: SkylineCommunications/_ReusableAgenticWorkflows/workflows/sync-collaboration-tasks.md@main
+description: "Syncs tasks from the Skyline Collaboration API to GitHub Issues and hands them off to Issue Triage for classification"
 on:
   schedule:
     - cron: "0 9 * * *"
   workflow_dispatch:
 
-permissions:
-  issues: read
-  contents: read
-  pull-requests: read
+engine: copilot
+timeout-minutes: 30
+inlined-imports: true
 
-tools:
-  github:
-    toolsets: [default]
-  web-fetch: {}
+checkout: false
+
+permissions:
+  contents: read
+  issues: read
 
 network:
   allowed:
@@ -30,10 +22,29 @@ network:
 safe-outputs:
   create-issue:
     max: 50
-  add-comment:
-    max: 100
+    labels: [needs-triage, collaboration-task]
   update-issue:
     max: 50
+  add-labels:
+    allowed:
+      - "priority: critical"
+      - "priority: high"
+      - "priority: medium"
+      - "priority: low"
+      - collaboration-task
+      - needs-triage
+    max: 5
+  remove-labels:
+    allowed:
+      - "priority: critical"
+      - "priority: high"
+      - "priority: medium"
+      - "priority: low"
+    max: 4
+  add-comment:
+    max: 10
+  noop:
+    max: 1
 
 env:
   COLLABORATION_API_BASE_URL: https://skyline-api.dataminer.services
@@ -50,101 +61,187 @@ secrets:
 You are an automation agent that synchronizes tasks from the Skyline DataMiner
 Collaboration API into GitHub Issues in the repository where this workflow is running.
 
+Newly created issues are handed off to the **Issue Triage** workflow via the
+`needs-triage` label, which handles type classification, duplicate detection, quality
+assessment, and `agent-ready` evaluation. You do not duplicate any of that work.
+
 ## Configuration
 
-- **Collaboration API Base URL**: available in the `COLLABORATION_API_BASE_URL` environment variable
-- **Project ID**: available in the `COLLABORATION_PROJECT_ID` environment variable
-- **API Token**: available in the `COLLABORATION_API_TOKEN` environment variable — use it as a Bearer token in all Collaboration API requests
+- **Collaboration API Base URL**: `COLLABORATION_API_BASE_URL` environment variable
+- **Project ID**: `COLLABORATION_PROJECT_ID` environment variable
+- **API Token**: `COLLABORATION_API_TOKEN` secret — use as `Authorization: Bearer <token>` in every Collaboration API request
 
-## Steps to Follow
+## Activation Guard
 
-### 1. Validate configuration
+Check both required configuration values before doing any work.
 
-Check that `COLLABORATION_PROJECT_ID` is not empty. If it is empty, stop and output a
-clear error message explaining that the `COLLABORATION_PROJECT_ID` repository variable
-must be set before using this workflow.
+**You MUST call `noop` and stop immediately if any of these conditions are true:**
 
-Check that `COLLABORATION_API_TOKEN` is not empty. If it is empty, stop and output a
-clear error message explaining that the `COLLABORATION_API_TOKEN` repository variable
-must be set before using this workflow.
+* `COLLABORATION_PROJECT_ID` is empty or not set. Call `noop` with message:
+  "Configuration error: COLLABORATION_PROJECT_ID repository variable must be set before using this workflow."
+* `COLLABORATION_API_TOKEN` is empty or not set. Call `noop` with message:
+  "Configuration error: COLLABORATION_API_TOKEN secret must be set before using this workflow."
 
-### 2. Fetch tasks from the Collaboration API
+**Failure to call `noop` when the configuration is invalid will cause the workflow to run with no data.**
 
-Make an HTTP GET request using the `COLLABORATION_API_BASE_URL` environment variable:
+## Step 1 – Fetch Tasks from the Collaboration API
+
+Make an HTTP GET request:
 
 ```
-GET $COLLABORATION_API_BASE_URL/api/dcp/Tasks/ByProject?projects=<COLLABORATION_PROJECT_ID>
-Authorization: Bearer <COLLABORATION_API_TOKEN>
+GET {COLLABORATION_API_BASE_URL}/api/dcp/Tasks/ByProject?projects={COLLABORATION_PROJECT_ID}
+Authorization: Bearer {COLLABORATION_API_TOKEN}
 ```
 
-Parse the JSON response into a list of tasks. Each task has at minimum:
-- A unique task ID
-- A title/name
-- A description
-- A type (e.g., Bug, Feature, Investigation)
-- A priority (e.g., Critical, High, Normal, Low)
-- An assignee (name, email, or username — may be absent)
+Parse the JSON response into a list of tasks. Each task contains at minimum:
 
-If the API returns an error, stop and report the HTTP status code and error message.
+| Field         | Description                                              |
+|---------------|----------------------------------------------------------|
+| `id`          | Unique task identifier                                   |
+| `title`       | Task name or summary                                     |
+| `description` | Detailed task description (may be empty)                 |
+| `type`        | Task type: `Bug`, `Feature`, `Investigation`, or `Other` |
+| `priority`    | Priority: `Critical`, `High`, `Normal`, or `Low`         |
+| `assignee`    | Assignee name or email (may be absent)                   |
 
+If the API returns a non-2xx status, call `noop` with message:
+`"API error: {HTTP status code} – {error message from response body}"` and stop.
 
+## Step 2 – Load Existing Synced Issues
 
+Search the repository for GitHub Issues that contain the hidden sync marker:
 
-#### 4c. Determine assignee
+```
+<!-- collaboration-task-id:
+```
 
-If the task has an assignee field, try to identify the corresponding GitHub username.
+Build a map of `taskId → issue` from all matching issues, including closed ones. This
+map drives the create-or-update decision in Step 3.
+
+## Step 3 – Process Each Task
+
+For each task fetched in Step 1, perform the following sub-steps in order.
+
+### 3a. Map Priority to Label
+
+| Collaboration priority | GitHub label         |
+|------------------------|----------------------|
+| Critical               | `priority: critical` |
+| High                   | `priority: high`     |
+| Normal                 | `priority: medium`   |
+| Low                    | `priority: low`      |
+
+> **Note:** "Normal" maps to `priority: medium` to align with the low / medium / high /
+> critical naming convention used by GitHub, Microsoft, and most open-source projects.
+
+### 3b. Determine Assignee
+
+If the task has an assignee field, attempt to resolve the corresponding GitHub username.
 
 > **⚠️ Security requirement:** Only assign users who are **confirmed members of the
-> `SkylineCommunications` GitHub organization**. Assigning a user who is not an org
-> member causes GitHub to send them a repository invitation, which would grant an
-> outsider access to the repository — a violation of security policy. This must never
-> happen.
+> `SkylineCommunications` GitHub organization**. Assigning an external user causes
+> GitHub to send them a repository invitation — a violation of security policy. This
+> must never happen.
 
-Follow these steps:
 1. Map the Collaboration assignee (name or email) to a GitHub username.
-2. **Verify org membership**: use the GitHub API to confirm the resolved username is a
-   member of the `SkylineCommunications` organization
-   (`GET /orgs/SkylineCommunications/members/<username>`).
-   This REST call is used instead of the MCP `search_users` tool because the MCP
-   user-search only surfaces **public** org membership; users who have their membership
-   set to private — a common situation — would be incorrectly excluded.
-3. Only if **both** steps succeed (username resolved **and** confirmed org member),
-   include the username in the `assignees` list.
-4. In all other cases — username cannot be resolved, or user is not an org member —
-   do **not** add them to `assignees`. Instead, add a note in the issue body:
-   `**Collaboration Assignee:** <assignee name or email>`.
+2. **Verify org membership** using the GitHub REST API directly:
+   `GET /orgs/SkylineCommunications/members/{username}`.
+   Do not use the MCP `search_users` tool — it only surfaces **public** org membership,
+   so users with private membership (a common setting) would be incorrectly excluded.
+3. Only include the username in `assignees` when **both** conditions are true:
+   the username resolves **and** the user is confirmed as an org member.
+4. When either condition fails, do **not** add an assignee. Instead, include a note in
+   the issue body: `**Collaboration Assignee:** {assignee name or email}`.
 
+### 3c. Build Issue Title and Body
 
+**Title:** Use the task title verbatim. Do not modify, truncate, or prefix it.
 
-#### 4f. Ask clarifying questions on vague tasks
+**Body:** Compose the issue body with the following sections in order:
 
-After creating or substantially updating the issue, check whether the task description
-is unclear:
-- The description (excluding the sync footer) is fewer than 50 characters, **or**
-- The description consists only of generic words such as: fix, investigate, test, todo,
-  tbd, n/a, unknown, check, review, update, change
+1. The task description verbatim from the API. If the description is empty, omit this section entirely.
 
-If either condition is true, post a comment on the issue:
+2. A metadata block:
 
-```
-Hi! 👋 This task was imported from the Collaboration API but the description seems a
-bit brief. To help the team work on this effectively, could you please clarify:
+   ```
+   ---
+   | Field    | Value            |
+   |----------|------------------|
+   | Type     | {task.type}      |
+   | Priority | {task.priority}  |
+   | Assignee | {assignee or —}  |
+   ---
+   ```
 
-1. **Expected outcome**: What should the result look like when this is done?
-2. **Current situation**: What is the current state or problem?
-3. **Steps to reproduce** (if applicable): How can we reproduce or verify the issue?
-4. **Acceptance criteria**: How will we know this task is complete?
+3. If the assignee could not be resolved to an org-confirmed GitHub username, append:
+   `**Collaboration Assignee:** {assignee name or email}`
 
-Thank you! 🙏
-```
+4. A sync footer (always last, never omit):
+
+   ```
+   <!-- collaboration-task-id: {task.id} -->
+   *Synced from [Collaboration]({COLLABORATION_API_BASE_URL}) · Task `{task.id}`*
+   ```
+
+### 3d. Create or Update the Issue
+
+Look up `task.id` in the map built in Step 2.
+
+**New task — no existing issue found:**
+
+Create a new GitHub Issue with:
+- Title from 3c
+- Body from 3c
+- Labels: `needs-triage`, `collaboration-task`, and the priority label from 3a
+- Assignees: the resolved GitHub username from 3b, if available
+
+Adding `needs-triage` hands the issue off to the **Issue Triage** workflow, which
+classifies the type, detects duplicates, assesses quality, and asks clarifying
+questions when the description is vague. Do not perform any of that work here.
+
+**Known task — existing issue found:**
+
+Compare the current issue body against the newly composed body, ignoring the sync
+footer. If the body content has changed, update the issue body.
+
+Compare the issue's current priority label against the new priority label from 3a.
+If the priority has changed, remove the old priority label and add the new one.
+
+Do **not** touch type labels (`bug`, `feature`, `enhancement`, `documentation`,
+`maintenance`, `security`, `breaking-change`), component labels, `agent-ready`, or
+`needs-triage` — those are owned exclusively by the triage and implementation workflows.
+
+Do **not** re-add `needs-triage` to already-triaged issues. An issue is considered
+triaged when it has at least one type label applied.
+
+If nothing has changed (body unchanged, priority unchanged), skip the issue silently.
 
 ## Summary
 
 After processing all tasks, output a brief summary:
-- Number of tasks fetched
-- Number of issues created
-- Number of issues updated
-- Number of tasks skipped (not relevant / insufficient confidence)
-- Number of cross-links added
-- Number of clarification comments posted
-- Missing-label warnings (if any)
+
+- Total tasks fetched from the API
+- Issues created (new tasks)
+- Issues updated (existing tasks with body or priority changes)
+- Issues unchanged (skipped)
+- Priority label updates applied
+- API or configuration errors encountered
+
+## Constraints
+
+* Do not close issues — even when a task no longer appears in the API response, leave
+  the issue open for a human to review and close.
+* Do not apply type labels (`bug`, `feature`, `enhancement`, etc.) — those are
+  applied exclusively by the Issue Triage workflow.
+* Do not post clarifying comments — vague descriptions are handled by Issue Triage
+  via its quality-assessment step after `needs-triage` is picked up.
+* Do not assign users who are not confirmed members of the `SkylineCommunications`
+  GitHub organization.
+* Do not create or delete labels at runtime — all labels must already exist in the
+  repository (maintained via the label-sync workflow).
+* Respect the per-run `create-issue` and `update-issue` caps. If a cap is reached,
+  report the remaining tasks in the summary so subsequent scheduled runs can continue.
+
+---
+
+🤖 Crafted with precision by ✨Copilot following brilliant human instruction, then carefully refined by our team of discerning human reviewers.
