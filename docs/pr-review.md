@@ -11,6 +11,12 @@ submits a consolidated review. For PRs from maintainers the review is advisory o
 for external contributors it can request changes or convert a severely deficient PR
 to draft.
 
+> **Powered by [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
+> the review agent is built on Microsoft's hve-core PR review agent, which encodes
+> the code review standards and best practices used across Microsoft's own open-source
+> repositories. Your contributors get the same quality bar as Microsoft projects,
+> automatically.
+
 ## Installation
 
 ```bash

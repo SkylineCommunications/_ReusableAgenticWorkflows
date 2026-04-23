@@ -10,6 +10,12 @@ codebase, plans the minimal set of changes needed, implements them, and opens a 
 request — all without any manual intervention. When the issue is ambiguous or too
 large, it posts a clarifying comment instead of guessing.
 
+> **Powered by [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
+> the implementation agent at the heart of this workflow is built on top of
+> Microsoft's hve-core task-implementor agent, bringing the same engineering
+> rigour and coding standards that Microsoft applies across their own repositories
+> directly to your project.
+
 ## Installation
 
 ```bash

@@ -10,6 +10,11 @@ triggers on every pull request that touches dependency files. When the PR author
 SHA pinning, and either approves the PR or leaves a comment explaining what requires
 human attention.
 
+> **Built on [microsoft/hve-core](https://github.com/microsoft/hve-core) standards** —
+> the safety checks and coding conventions applied by this workflow follow the
+> hve-core instruction set, the same guidelines Microsoft uses to keep their own
+> repositories secure and consistent.
+
 ## Installation
 
 ```bash

@@ -10,6 +10,11 @@ against its mapped documentation, and when documentation is found to be stale it
 opens a GitHub Issue so the gap is tracked and can be resolved — either manually or
 by the [Issue Implementation](issue-implement.md) workflow.
 
+> **Built on [microsoft/hve-core](https://github.com/microsoft/hve-core) standards** —
+> the documentation mapping rules and issue quality conventions used by this workflow
+> are derived from the hve-core instruction set, ensuring the issues it raises meet
+> the same bar Microsoft sets for their own repositories.
+
 ## Installation
 
 ```bash
