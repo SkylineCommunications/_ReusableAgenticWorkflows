@@ -15,9 +15,10 @@ on:
 
 engine: copilot
 timeout-minutes: 15
+inlined-imports: true
 
 imports:
-  - ../agents/dependency-reviewer.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/dependency-reviewer.agent.md
 
 checkout:
   sparse-checkout: |

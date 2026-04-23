@@ -13,9 +13,10 @@ on:
 
 engine: copilot
 timeout-minutes: 30
+inlined-imports: true
 
 imports:
-  - ../agents/hve-core/task-implementor.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/hve-core/task-implementor.agent.md
 
 checkout:
   sparse-checkout: |
