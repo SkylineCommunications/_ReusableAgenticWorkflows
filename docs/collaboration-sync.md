@@ -1,10 +1,10 @@
-# 🔄 Sync Collaboration Tasks
+# 🔄 Collaboration Sync
 
 > For an overview of all available workflows, see the [main README](../README.md).
 
 **Automatically sync tasks from the Skyline Collaboration API to GitHub Issues — and hand them off to Issue Triage for classification**
 
-The [Sync Collaboration Tasks workflow](../workflows/sync-collaboration-tasks.md?plain=1)
+The [Collaboration Sync workflow](../workflows/collaboration-sync.md?plain=1)
 runs daily (and can be triggered manually) to fetch all tasks from a configured
 Collaboration project and create or update GitHub Issues. Each newly created issue is
 immediately handed off to the [Issue Triage](issue-triage.md) workflow via the
@@ -19,7 +19,7 @@ responsibilities and never duplicate each other's work.
 gh extension install github/gh-aw
 
 # Add the workflow to your repository
-gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/sync-collaboration-tasks
+gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/collaboration-sync
 ```
 
 This walks you through adding the workflow to your repository.
@@ -72,9 +72,9 @@ distinct responsibility so they never duplicate each other's work:
 
 | Concern                                              | Owner                       |
 |------------------------------------------------------|-----------------------------|
-| Create a GitHub Issue from a Collaboration task      | **Sync Collaboration Tasks** |
-| Update issue body when task description changes      | **Sync Collaboration Tasks** |
-| Update priority label when task priority changes     | **Sync Collaboration Tasks** |
+| Create a GitHub Issue from a Collaboration task      | **Collaboration Sync** |
+| Update issue body when task description changes      | **Collaboration Sync** |
+| Update priority label when task priority changes     | **Collaboration Sync** |
 | Classify issue type (`bug`, `feature`, etc.)         | **Issue Triage**            |
 | Detect duplicate issues                              | **Issue Triage**            |
 | Assess description quality / ask clarifying questions | **Issue Triage**           |

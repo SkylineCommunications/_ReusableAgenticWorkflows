@@ -6,7 +6,7 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ### Integration Workflows
 
-- [🔄 Sync Collaboration Tasks](docs/sync-collaboration-tasks.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues daily
+- [🔄 Collaboration Sync](docs/collaboration-sync.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues daily
 
 ### Pull Request Workflows
 
@@ -24,7 +24,19 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ## 🔧 Installation
 
-Each workflow can be installed into any repository using the `gh aw` CLI extension:
+### Install all workflows at once
+
+```bash
+# Install the extension (once)
+gh extension install github/gh-aw
+
+# Add all workflows to your repository
+for wf in collaboration-sync dependency-pr-review doc-update-check issue-implement issue-triage pr-review; do
+  gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/$wf
+done
+```
+
+### Install a single workflow
 
 ```bash
 # Install the extension (once)

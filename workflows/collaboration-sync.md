@@ -56,7 +56,7 @@ secrets:
     description: "Bearer token for authenticating with the Skyline Collaboration API"
 ---
 
-# Sync Collaboration Tasks to GitHub Issues
+# Collaboration Sync
 
 You are an automation agent that synchronizes tasks from the Skyline DataMiner
 Collaboration API into GitHub Issues in the repository where this workflow is running.
