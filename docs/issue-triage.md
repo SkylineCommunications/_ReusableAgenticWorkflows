@@ -10,12 +10,11 @@ classifies the issue by type and component, searches for duplicates, evaluates
 quality, and — when all criteria are met — marks the issue `agent-ready` so the
 [Issue Implementation](issue-implement.md) workflow can act on it automatically.
 
-> **Originally from [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
-> this workflow originates from Microsoft's open-source hve-core repository, which
-> provides battle-tested agentic workflow patterns used across Microsoft's own projects.
-> Adopting it means you get the same rigorous issue classification logic, community
-> interaction guidelines, and backlog management standards that Microsoft ships and
-> maintains — with no extra effort on your part.
+> **Powered by [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
+> this workflow imports the battle-tested backlog triage, community interaction,
+> and backlog planning instruction sets directly from Microsoft's open-source
+> hve-core repository. You get the same rigorous issue classification standards
+> that Microsoft uses in their own repositories, packaged as a drop-in workflow.
 
 ## Installation
 

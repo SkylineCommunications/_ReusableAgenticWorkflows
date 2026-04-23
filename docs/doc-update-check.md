@@ -10,12 +10,10 @@ against its mapped documentation, and when documentation is found to be stale it
 opens a GitHub Issue so the gap is tracked and can be resolved — either manually or
 by the [Issue Implementation](issue-implement.md) workflow.
 
-> **Originally from [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
-> this workflow originates from Microsoft's open-source hve-core repository, which
-> provides battle-tested agentic workflow patterns used across Microsoft's own projects.
-> Adopting it means you get the same documentation health monitoring that Microsoft
-> ships and maintains — automatically detecting stale docs and filing well-formed
-> issues — with no extra effort on your part.
+> **Built on [microsoft/hve-core](https://github.com/microsoft/hve-core) standards** —
+> the documentation mapping rules and issue quality conventions used by this workflow
+> are derived from the hve-core instruction set, ensuring the issues it raises meet
+> the same bar Microsoft sets for their own repositories.
 
 ## Installation
 
