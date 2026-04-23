@@ -17,7 +17,7 @@ permissions:
 
 network:
   allowed:
-    - skyline-api.dataminer.services
+    - api.skyline.be
 
 safe-outputs:
   create-issue:
@@ -47,13 +47,16 @@ safe-outputs:
     max: 1
 
 env:
-  COLLABORATION_API_BASE_URL: https://skyline-api.dataminer.services
+  COLLABORATION_API_BASE_URL: https://api.skyline.be
   COLLABORATION_PROJECT_ID: ${{ vars.COLLABORATION_PROJECT_ID }}
 
 secrets:
-  COLLABORATION_API_TOKEN:
-    value: ${{ secrets.COLLABORATION_API_TOKEN }}
-    description: "Bearer token for authenticating with the Skyline Collaboration API"
+  COLLABORATION_USERNAME:
+    value: ${{ secrets.COLLABORATION_USERNAME }}
+    description: "Username for authenticating with the Skyline Collaboration API"
+  COLLABORATION_PASSWORD:
+    value: ${{ secrets.COLLABORATION_PASSWORD }}
+    description: "Password for authenticating with the Skyline Collaboration API"
 ---
 
 # Collaboration Sync
@@ -69,28 +72,48 @@ assessment, and `agent-ready` evaluation. You do not duplicate any of that work.
 
 - **Collaboration API Base URL**: `COLLABORATION_API_BASE_URL` environment variable
 - **Project ID**: `COLLABORATION_PROJECT_ID` environment variable
-- **API Token**: `COLLABORATION_API_TOKEN` secret — use as `Authorization: Bearer <token>` in every Collaboration API request
+- **Username**: `COLLABORATION_USERNAME` secret — used together with the password to obtain a Bearer token from `https://api.skyline.be/Token`
+- **Password**: `COLLABORATION_PASSWORD` secret — used together with the username to obtain a Bearer token from `https://api.skyline.be/Token`
 
 ## Activation Guard
 
-Check both required configuration values before doing any work.
+Check all required configuration values before doing any work.
 
 **You MUST call `noop` and stop immediately if any of these conditions are true:**
 
 * `COLLABORATION_PROJECT_ID` is empty or not set. Call `noop` with message:
   "Configuration error: COLLABORATION_PROJECT_ID repository variable must be set before using this workflow."
-* `COLLABORATION_API_TOKEN` is empty or not set. Call `noop` with message:
-  "Configuration error: COLLABORATION_API_TOKEN secret must be set before using this workflow."
+* `COLLABORATION_USERNAME` is empty or not set. Call `noop` with message:
+  "Configuration error: COLLABORATION_USERNAME secret must be set before using this workflow."
+* `COLLABORATION_PASSWORD` is empty or not set. Call `noop` with message:
+  "Configuration error: COLLABORATION_PASSWORD secret must be set before using this workflow."
 
 **Failure to call `noop` when the configuration is invalid will cause the workflow to run with no data.**
 
-## Step 1 – Fetch Tasks from the Collaboration API
+## Step 1 – Obtain an Access Token
+
+Make a POST request to the token endpoint to exchange credentials for a Bearer token:
+
+```
+POST https://api.skyline.be/Token
+Content-Type: application/x-www-form-urlencoded
+
+username={COLLABORATION_USERNAME}&password={COLLABORATION_PASSWORD}&grant_type=password
+```
+
+Parse the JSON response and extract the `access_token` field. Use this value as the
+Bearer token in all subsequent Collaboration API requests (see Step 2).
+
+If the response is non-2xx or the `access_token` field is absent, call `noop` with
+message: `"Authentication error: failed to obtain access token – {HTTP status code}"` and stop.
+
+## Step 2 – Fetch Tasks from the Collaboration API
 
 Make an HTTP GET request:
 
 ```
 GET {COLLABORATION_API_BASE_URL}/api/dcp/Tasks/ByProject?projects={COLLABORATION_PROJECT_ID}
-Authorization: Bearer {COLLABORATION_API_TOKEN}
+Authorization: Bearer {access_token}
 ```
 
 Parse the JSON response into a list of tasks. Each task contains at minimum:
@@ -107,7 +130,7 @@ Parse the JSON response into a list of tasks. Each task contains at minimum:
 If the API returns a non-2xx status, call `noop` with message:
 `"API error: {HTTP status code} – {error message from response body}"` and stop.
 
-## Step 2 – Load Existing Synced Issues
+## Step 3 – Load Existing Synced Issues
 
 Search the repository for GitHub Issues that contain the hidden sync marker:
 
@@ -116,13 +139,13 @@ Search the repository for GitHub Issues that contain the hidden sync marker:
 ```
 
 Build a map of `taskId → issue` from all matching issues, including closed ones. This
-map drives the create-or-update decision in Step 3.
+map drives the create-or-update decision in Step 4.
 
-## Step 3 – Process Each Task
+## Step 4 – Process Each Task
 
-For each task fetched in Step 1, perform the following sub-steps in order.
+For each task fetched in Step 2, perform the following sub-steps in order.
 
-### 3a. Map Priority to Label
+### 4a. Map Priority to Label
 
 | Collaboration priority | GitHub label         |
 |------------------------|----------------------|
@@ -134,7 +157,7 @@ For each task fetched in Step 1, perform the following sub-steps in order.
 > **Note:** "Normal" maps to `priority: medium` to align with the low / medium / high /
 > critical naming convention used by GitHub, Microsoft, and most open-source projects.
 
-### 3b. Determine Assignee
+### 4b. Determine Assignee
 
 If the task has an assignee field, attempt to resolve the corresponding GitHub username.
 
@@ -153,7 +176,7 @@ If the task has an assignee field, attempt to resolve the corresponding GitHub u
 4. When either condition fails, do **not** add an assignee. Instead, include a note in
    the issue body: `**Collaboration Assignee:** {assignee name or email}`.
 
-### 3c. Build Issue Title and Body
+### 4c. Build Issue Title and Body
 
 **Title:** Use the task title verbatim. Do not modify, truncate, or prefix it.
 
@@ -183,17 +206,17 @@ If the task has an assignee field, attempt to resolve the corresponding GitHub u
    *Synced from [Collaboration]({COLLABORATION_API_BASE_URL}) · Task `{task.id}`*
    ```
 
-### 3d. Create or Update the Issue
+### 4d. Create or Update the Issue
 
-Look up `task.id` in the map built in Step 2.
+Look up `task.id` in the map built in Step 3.
 
 **New task — no existing issue found:**
 
 Create a new GitHub Issue with:
-- Title from 3c
-- Body from 3c
-- Labels: `needs-triage`, `collaboration-task`, and the priority label from 3a
-- Assignees: the resolved GitHub username from 3b, if available
+- Title from 4c
+- Body from 4c
+- Labels: `needs-triage`, `collaboration-task`, and the priority label from 4a
+- Assignees: the resolved GitHub username from 4b, if available
 
 Adding `needs-triage` hands the issue off to the **Issue Triage** workflow, which
 classifies the type, detects duplicates, assesses quality, and asks clarifying
@@ -204,7 +227,7 @@ questions when the description is vague. Do not perform any of that work here.
 Compare the current issue body against the newly composed body, ignoring the sync
 footer. If the body content has changed, update the issue body.
 
-Compare the issue's current priority label against the new priority label from 3a.
+Compare the issue's current priority label against the new priority label from 4a.
 If the priority has changed, remove the old priority label and add the new one.
 
 Do **not** touch type labels (`bug`, `feature`, `enhancement`, `documentation`,

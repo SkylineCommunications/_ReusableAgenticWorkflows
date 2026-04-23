@@ -30,7 +30,8 @@ This walks you through adding the workflow to your repository.
 
 | Secret | Description |
 |--------|-------------|
-| `COLLABORATION_API_TOKEN` | Bearer token for authenticating with `https://skyline-api.dataminer.services` |
+| `COLLABORATION_USERNAME` | Username for authenticating with the Skyline Collaboration API |
+| `COLLABORATION_PASSWORD` | Password for authenticating with the Skyline Collaboration API |
 
 ### Required variables
 
@@ -97,17 +98,21 @@ The workflow runs:
 It calls `noop` and stops when:
 
 - `COLLABORATION_PROJECT_ID` is not set
-- `COLLABORATION_API_TOKEN` is not set
+- `COLLABORATION_USERNAME` is not set
+- `COLLABORATION_PASSWORD` is not set
+- The token endpoint returns a non-2xx response or no `access_token`
 - The Collaboration API returns a non-2xx response
 
 ### Procedure
 
-1. **Validate configuration** — verifies both required config values are present.
-2. **Fetch tasks** — calls `GET /api/dcp/Tasks/ByProject?projects={id}` with the
-   configured Bearer token.
-3. **Load existing synced issues** — scans the repository for issues containing the
+1. **Validate configuration** — verifies all required config values are present.
+2. **Obtain access token** — POSTs credentials to `https://api.skyline.be/Token` and
+   extracts the Bearer token from the response.
+3. **Fetch tasks** — calls `GET /api/dcp/Tasks/ByProject?projects={id}` with the
+   obtained Bearer token.
+4. **Load existing synced issues** — scans the repository for issues containing the
    hidden `<!-- collaboration-task-id: ... -->` marker to build a task-ID → issue map.
-4. **Process each task**:
+5. **Process each task**:
    - Maps the Collaboration priority to a GitHub `priority:` label.
    - Resolves the assignee to a GitHub username and verifies org membership
      (see [Assignee security](#assignee-security) below).
@@ -116,7 +121,7 @@ It calls `noop` and stops when:
      the priority label. The Issue Triage workflow takes it from there.
    - **Known task**: updates the issue body if the task description changed, and updates
      the priority label if the priority changed. All other labels are untouched.
-5. **Output summary** — reports counts of tasks fetched, issues created, updated,
+6. **Output summary** — reports counts of tasks fetched, issues created, updated,
    unchanged, and any errors.
 
 ### Output behaviour
@@ -144,6 +149,7 @@ included in the issue body as a plain-text note so a human can assign manually.
 
 ## What it reads
 
+- **Skyline Token endpoint** — `POST https://api.skyline.be/Token`: exchanges username/password credentials for a Bearer access token
 - **Collaboration API** — `GET /api/dcp/Tasks/ByProject?projects={id}`: task list with
   ID, title, description, type, priority, and assignee
 - **GitHub Issues** — existing issues with the `<!-- collaboration-task-id: ... -->`
