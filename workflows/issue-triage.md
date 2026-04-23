@@ -13,7 +13,7 @@ timeout-minutes: 10
 inlined-imports: true
 
 imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/issue-triage.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/issue-triage.agent.md
   - microsoft/hve-core/.github/instructions/github/github-backlog-triage.instructions.md
   - microsoft/hve-core/.github/instructions/github/community-interaction.instructions.md
   - microsoft/hve-core/.github/instructions/github/github-backlog-planning.instructions.md

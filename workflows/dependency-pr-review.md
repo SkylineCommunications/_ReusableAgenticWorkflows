@@ -18,7 +18,7 @@ timeout-minutes: 15
 inlined-imports: true
 
 imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/dependency-reviewer.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/dependency-reviewer.agent.md
 
 checkout:
   sparse-checkout: |

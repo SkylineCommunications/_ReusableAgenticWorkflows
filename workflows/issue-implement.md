@@ -16,7 +16,7 @@ timeout-minutes: 30
 inlined-imports: true
 
 imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/hve-core/task-implementor.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/task-implementor.agent.md
 
 checkout:
   sparse-checkout: |

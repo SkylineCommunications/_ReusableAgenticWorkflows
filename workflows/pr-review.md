@@ -12,7 +12,7 @@ timeout-minutes: 15
 inlined-imports: true
 
 imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/.github/agents/hve-core/pr-review.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/pr-review.agent.md
 
 checkout:
   sparse-checkout: |
