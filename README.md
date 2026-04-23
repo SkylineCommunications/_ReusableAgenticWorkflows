@@ -8,6 +8,20 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 - [🔄 Sync Collaboration Tasks](docs/sync-collaboration-tasks.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues daily
 
+### Pull Request Workflows
+
+- [🔍 Dependency PR Review](docs/dependency-pr-review.md) - Review and auto-approve Dependabot version bump PRs after safety validation
+- [🔎 PR Review](docs/pr-review.md) - Automated quality review on pull requests before human review
+
+### Issue Workflows
+
+- [🏷️ Issue Triage](docs/issue-triage.md) - Classify new issues, detect duplicates, and assess implementation readiness
+- [🤖 Issue Implementation](docs/issue-implement.md) - Analyze `agent-ready` issues and open pull requests with the implementation
+
+### Documentation Workflows
+
+- [📝 Documentation Update Check](docs/doc-update-check.md) - Detect stale documentation after code changes and create issues for updates
+
 ## 🔧 Installation
 
 Each workflow can be installed into any repository using the `gh aw` CLI extension:

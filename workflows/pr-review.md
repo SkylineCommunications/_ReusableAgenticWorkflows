@@ -9,9 +9,10 @@ on:
 
 engine: copilot
 timeout-minutes: 15
+inlined-imports: true
 
 imports:
-  - ../agents/hve-core/pr-review.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/pr-review.agent.md
 
 checkout:
   sparse-checkout: |
