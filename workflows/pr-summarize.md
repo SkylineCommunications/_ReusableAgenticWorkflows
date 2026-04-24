@@ -11,6 +11,9 @@ engine: copilot
 timeout-minutes: 10
 inlined-imports: true
 
+imports:
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/pr-summarize.agent.md
+
 permissions:
   contents: read
   issues: read
@@ -49,24 +52,8 @@ the change.
 
 ### 2. Write the Summary
 
-Write a clear, plain-language summary aimed at anyone who may read or be affected
-by this PR — including non-developers such as product owners, technical writers,
-and testers. The summary must:
-
-* Open with one or two sentences describing **what** the PR does and **why**.
-* Explain the **user-visible or system-level impact** of the change.
-* Call out any **important technical details** that reviewers or testers should
-  know (e.g. new configuration, changed behaviour, migration steps).
-* If the change is scoped to a specific product, version, or component, say so
-  explicitly at the start (e.g. "This applies only to …").
-* When there are multiple distinct changes, use a short bullet list.
-* Avoid bullet lists for single-topic summaries — flowing prose reads better.
-* Do **not** reproduce the raw diff, list file names, or use developer jargon
-  without explanation.
-* Keep the summary concise: aim for 100–250 words. Longer is only acceptable
-  when the PR is genuinely complex and the extra detail adds value.
-
-Write in the third person (e.g. "This PR adds …" or "Users can now …").
+Write the summary following the audience awareness, structure, writing guidelines,
+and content rules defined in the imported PR Summarizer agent instructions.
 
 ### 3. Post the Summary
 
