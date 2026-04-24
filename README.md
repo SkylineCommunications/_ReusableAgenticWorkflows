@@ -12,6 +12,7 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 - [🔍 Dependency PR Review](docs/dependency-pr-review.md) - Review and auto-approve Dependabot version bump PRs after safety validation
 - [🔎 PR Review](docs/pr-review.md) - Automated quality review on pull requests before human review
+- [📋 PR Summarize](docs/pr-summarize.md) - Automated plain-language summary of pull request changes
 
 ### Issue Workflows
 
@@ -40,7 +41,8 @@ git switch -c chore/add-agentic-workflows
   'doc-update-check',
   'issue-implement',
   'issue-triage',
-  'pr-review'
+  'pr-review',
+  'pr-summarize'
 ) | ForEach-Object {
   gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
 }
