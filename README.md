@@ -25,7 +25,7 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ## 🔧 Installation
 
-### Install all workflows at once
+### Install all workflows at once (still testing, please do one by one for now)
 
 ```powershell
 # Install once
