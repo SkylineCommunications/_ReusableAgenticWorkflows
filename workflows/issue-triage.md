@@ -97,7 +97,7 @@ For each step, follow the detailed guidance in the Issue Triage Agent instructio
 
 * **Well-formed issue:** Remove `needs-triage`, add type label(s) and component label(s). If all `agent-ready` criteria are met, also add `agent-ready`.
 * **Issue needing more info:** Remove `needs-triage`, add type label if determinable, add a comment requesting specific missing information.
-* **Potential duplicate found:** Proceed with normal triage AND add a comment noting the related issue(s). Do not add a `duplicate` label.
+* **Potential duplicate found:** Proceed with normal triage AND add a comment noting the related issue(s). Add a `duplicate` label.
 * **Unclassifiable issue:** Remove `needs-triage`, add a comment asking the author to clarify the issue type and scope.
 
 ## Constraints
