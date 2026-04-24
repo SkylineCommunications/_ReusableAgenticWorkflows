@@ -27,10 +27,13 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 ### Install all workflows at once
 
 ```powershell
-# Install the extension (once)
+# Install once
 gh extension install github/gh-aw
 
-# Add all workflows to your repository
+# Create a clean feature branch first
+git switch -c chore/add-agentic-workflows
+
+# Add all workflows non-interactively
 @(
   'collaboration-sync',
   'dependency-pr-review',
@@ -38,7 +41,23 @@ gh extension install github/gh-aw
   'issue-implement',
   'issue-triage',
   'pr-review'
-) | ForEach-Object { gh aw add-wizard "SkylineCommunications/_ReusableAgenticWorkflows/$_" }
+) | ForEach-Object {
+  gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
+}
+
+# After all workflows are added, prompt once for any missing secrets
+gh aw secrets bootstrap
+
+# Review what changed
+git status
+
+# Commit once
+git add .github .gitattributes
+git commit -m "Add reusable agentic workflows"
+
+# Push and open PR
+git push -u origin HEAD
+gh pr create --fill
 ```
 
 ### Install a single workflow
