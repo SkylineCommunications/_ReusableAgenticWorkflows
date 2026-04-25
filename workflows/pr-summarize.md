@@ -4,6 +4,8 @@ on:
   pull_request:
     types: [opened, ready_for_review, synchronize]
     forks: ["*"]
+  bots:
+    - "Copilot"
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
