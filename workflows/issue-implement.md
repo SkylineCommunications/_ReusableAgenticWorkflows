@@ -8,6 +8,8 @@ on:
   # command:
   #   name: implement
   roles: [admin, maintainer, write]
+  bots:
+    - "Copilot"
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
