@@ -17,6 +17,6 @@ permissions:
 
 # Issue Implementation Agent
 
-Please read SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/task-implementor.agent.md, and continue with this workflow.
+Please read SkylineCommunications/_ReusableAgenticWorkflows/agents/workflows/issue-implement.agent.md, and continue with this workflow.
 
 *(This workflow inherits its core logic from the central `SkylineCommunications/_ReusableAgenticWorkflows` repository. Updating the central repository automatically updates this agent!)*
