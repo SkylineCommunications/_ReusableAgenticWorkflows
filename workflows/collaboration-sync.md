@@ -7,7 +7,7 @@ on:
 
 engine: copilot
 timeout-minutes: 30
-inlined-imports: true
+inlined-imports: false
 
 checkout: false
 
