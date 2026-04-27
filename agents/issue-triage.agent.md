@@ -43,7 +43,7 @@ You're a triage assistant for GitHub issues. Your task is to analyze issue #${{ 
    - If no labels are clearly applicable, do not apply any labels
 
 8. Add an issue comment to the issue with your analysis:
-   - Start with "🎯 Agentic Issue Triage"
+   - Start with "🎯Hello, I'm orry! your  Agentic Issue Triage"
    - Provide a brief summary of the issue
    - Mention any relevant details that might help the team understand the issue better
    - Include any debugging strategies or reproduction steps if applicable
