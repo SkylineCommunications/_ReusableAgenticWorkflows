@@ -6,6 +6,7 @@ on:
     names: [needs-triage]
 
 engine: copilot
+inlined-imports: false
 
 permissions:
   contents: read
