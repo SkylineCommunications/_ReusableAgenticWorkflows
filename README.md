@@ -4,10 +4,6 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ## 📂 Available Workflows
 
-### Integration Workflows
-
-- [🔄 Collaboration Sync](docs/collaboration-sync.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues daily
-
 ### Pull Request Workflows
 
 - [🔍 Dependency PR Review](docs/dependency-pr-review.md) - Review and auto-approve Dependabot version bump PRs after safety validation
@@ -31,12 +27,10 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 # Install once
 gh extension install github/gh-aw
 
-# Create a clean feature branch first
-git switch -c chore/add-agentic-workflows
+# Note: Create a clean feature branch first, e.g.: git switch -c chore/add-agentic-workflows
 
 # Add all workflows non-interactively
 @(
-  'collaboration-sync',
   'dependency-pr-review',
   'doc-update-check',
   'issue-implement',
@@ -57,9 +51,7 @@ git status
 git add .github .gitattributes
 git commit -m "Add reusable agentic workflows"
 
-# Push and open PR
-git push -u origin HEAD
-gh pr create --fill
+# Note: Push and open a PR, e.g.: git push -u origin HEAD && gh pr create --fill
 ```
 
 ### Install a single workflow
@@ -76,10 +68,47 @@ gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/<workflow-name>
 
 Keep your agentic workflows up to date:
 
-```bash
+```powershell
 gh extension upgrade github/gh-aw  # Update the CLI extension
 gh aw upgrade                       # Upgrade to the latest gh-aw engine version
-gh aw update                        # Update added workflows
+
+# Note: Create a clean feature branch first, e.g.: git switch -c chore/update-agentic-workflows
+
+# Remove all existing workflows
+@(
+  'dependency-pr-review',
+  'doc-update-check',
+  'issue-implement',
+  'issue-triage',
+  'pr-review',
+  'pr-summarize'
+) | ForEach-Object {
+  gh aw remove "SkylineCommunications/_ReusableAgenticWorkflows/$_"
+}
+
+# Re-add all workflows with the latest version
+@(
+  'dependency-pr-review',
+  'doc-update-check',
+  'issue-implement',
+  'issue-triage',
+  'pr-review',
+  'pr-summarize'
+) | ForEach-Object {
+  gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
+}
+
+# After all workflows are added, prompt once for any missing secrets
+gh aw secrets bootstrap
+
+# Review what changed
+git status
+
+# Commit once
+git add .github .gitattributes
+git commit -m "Update reusable agentic workflows"
+
+# Note: Push and open a PR, e.g.: git push -u origin HEAD && gh pr create --fill
 ```
 
 ## 📖 Learn More
