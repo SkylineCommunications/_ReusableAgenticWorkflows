@@ -21,7 +21,26 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ## 🔧 Installation
 
-### Install all workflows at once (still testing, please do one by one for now)
+There are two ways to use these workflows in your repository: using "stubs" (recommended for zero maintenance) or fully downloading them.
+
+### Option 1: Zero-Maintenance Stubs (Recommended)
+
+Instead of copying the full workflows to your repository, you can create a lightweight "stub" workflow that automatically imports the latest logic from this central repository. This means **you never have to update them manually** when the core agents change!
+
+1. Copy the stub files from the [`stubs/`](stubs/) directory of this repo.
+2. Place them in your repository under `.github/workflows/`.
+3. Commit the `.md` stubs.
+
+*(Example target path: `.github/workflows/issue-triage.md`)*
+
+*Currently available stubs:*
+- `issue-triage.md`
+
+### Option 2: Full Installation (via CLI)
+
+If you prefer to have the independent workflows baked locally into your repository:
+
+#### Install all workflows at once (still testing, please do one by one for now)
 
 ```powershell
 # Install once
