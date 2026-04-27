@@ -25,6 +25,6 @@ permissions:
 
 # Documentation Update Check Agent
 
-Please read SkylineCommunications/_ReusableAgenticWorkflows/agents/workflows/doc-update-check.agent.md, and continue with this workflow.
+Please read SkylineCommunications/_ReusableAgenticWorkflows/agents/doc-update-checker.agent.md, and continue with this workflow.
 
 *(This workflow inherits its core logic from the central `SkylineCommunications/_ReusableAgenticWorkflows` repository. Updating the central repository automatically updates this agent!)*

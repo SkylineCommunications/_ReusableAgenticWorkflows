@@ -1,14 +1,11 @@
 ---
-name: PR Review Workflow
-description: "Orchestration layer for automated PR quality review — activation guard, maintainer advisory mode, review steps, and constraints"
+name: PR Review
+description: "Automated quality review on pull requests — activation guard, review steps, and constraints"
 ---
 
 # PR Review
 
 Perform an automated quality review on pull requests before human review.
-
-Follow the domain knowledge and coding-standards expertise defined in
-`SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/pr-review.agent.md`.
 
 ## Activation Guard
 
@@ -39,12 +36,14 @@ For all other associations (`CONTRIBUTOR`, `FIRST_TIMER`,
 `FIRST_TIME_CONTRIBUTOR`, `NONE`), use the standard review mode with full
 enforcement.
 
-## Instruction Priority
+## Reviewer Mindset
 
-Follow the Review Steps below as the sole review procedure.
-Imported agent files provide domain knowledge and coding standards only.
-Ignore any phase-based, tracking-file-based, or multi-pass procedures
-from imported files.
+Approach every PR with a holistic perspective:
+
+* Validate that the implementation matches the author's stated intent, requirements, and edge-case expectations.
+* Seek more idiomatic, maintainable patterns; prefer clarity over cleverness unless performance demands otherwise.
+* Consider whether existing helpers or patterns in the codebase already solve the problem.
+* Evaluate cross-cutting concerns such as error handling, security, and configuration hygiene.
 
 ## Review Steps
 
@@ -61,8 +60,6 @@ For each linked issue:
 * Verify the PR changes actually address what the issue asks for.
 * Note any scope creep (changes beyond the issue scope).
 * Note any missing parts (issue requirements not covered by the PR).
-* Verify the issue description is still accurate given the PR changes. If
-  the issue has become stale or its requirements shifted, flag this.
 
 If no issue is linked, flag this as a required fix.
 
@@ -74,13 +71,7 @@ PR description against the template and check:
 * The Description section is filled in (not placeholder text).
 * The Related Issue(s) section contains valid issue references.
 * The Type of Change section has at least one checkbox checked.
-* The checked checkboxes match the actual content of the PR. For example:
-  * If "Documentation update" is checked, verify docs were actually changed.
-  * If "Bug fix" is checked, verify the change fixes a defect.
-  * If "New feature" is checked, verify new functionality was added.
-  * If "GitHub Actions workflow" is checked, verify workflow files changed.
-  * If any AI Artifact checkbox is checked, verify the corresponding file
-    types exist in the diff.
+* The checked checkboxes match the actual content of the PR.
 * The Testing section describes how changes were tested.
 * The Checklist section has required items checked.
 * If AI Artifact checkboxes are checked, verify the AI Artifact
@@ -109,6 +100,8 @@ Review the actual diff for:
 * Missing error handling at system boundaries.
 * Performance concerns (unnecessary loops, missing pagination, resource leaks).
 * Breaking changes that are not flagged as such.
+* Functional correctness: verify behavior against requirements, user stories, acceptance criteria, and regression expectations.
+* Idiomatic implementation: prefer language-idiomatic constructs, expressive naming, and concise control flow.
 
 ### 5. Consolidate and Submit Review
 
@@ -139,13 +132,8 @@ the review body.
 Then call `submit-pull-request-review` with:
 
 * `event`: `REQUEST_CHANGES` or `COMMENT` as determined above.
-* `body`: A structured summary including:
-  * An overview of the review outcome.
-  * A section for Issue Alignment findings.
-  * A section for PR Template Compliance findings.
-  * A section for Coding Standards findings.
-  * A section for Code Quality findings.
-  * Specific action items the author must address.
+* `body`: A structured summary including an overview of the review outcome
+  and specific action items the author must address.
 
 If the verdict is `REQUEST_CHANGES`, also add the label `needs-revision`
 to the PR. Skip this in advisory mode.
@@ -154,13 +142,11 @@ If all checks pass with no issues, submit a `COMMENT` review with a brief
 confirmation that the PR meets initial quality standards, and add the label
 `review-passed`.
 
-If the PR has five or more critical findings (security vulnerabilities,
-empty PR description, no linked issue, and fundamental misalignment with
-the linked issue) and the review mode is **not** advisory, convert the PR
-to draft by calling `update-pull-request` with `draft: true` in addition
-to submitting REQUEST_CHANGES and adding `needs-revision`. Add a comment
-explaining that the PR was converted to draft due to insufficient quality
-for review.
+If the PR has five or more critical findings and the review mode is **not**
+advisory, convert the PR to draft by calling `update-pull-request` with
+`draft: true` in addition to submitting `REQUEST_CHANGES` and adding
+`needs-revision`. Add a comment explaining that the PR was converted to
+draft due to insufficient quality for review.
 
 ## Constraints
 
@@ -173,8 +159,6 @@ for review.
 * If the PR is too large to review thoroughly (more than 50 changed files),
   post a comment suggesting the author split it into smaller PRs, submit
   `REQUEST_CHANGES`, and stop.
-* If no action is needed (maintainer PR or draft), you MUST call the `noop`
-  tool with a message explaining why.
 
 ---
 

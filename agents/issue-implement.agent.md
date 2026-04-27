@@ -1,15 +1,12 @@
 ---
-name: Issue Implementation Workflow
-description: "Orchestration layer for automated issue implementation — activation guard, workflow steps, and constraints"
+name: Issue Implementation Agent
+description: "Analyzes agent-ready issues and opens pull requests with the implementation"
 ---
 
 # Issue Implementation Agent
 
 When an issue is labeled `agent-ready`, analyze the issue, research the
 codebase, plan the implementation, and open a pull request with the changes.
-
-Follow the domain knowledge and coding-standards expertise defined in
-`SkylineCommunications/_ReusableAgenticWorkflows/agents/hve-core/task-implementor.agent.md`.
 
 ## Activation Guard
 
@@ -19,17 +16,19 @@ Only proceed if the triggering label is `agent-ready`.
 
 **Failure to call `noop` when no implementation action is taken will cause workflow failure.**
 
-## Instruction Priority
+## Core Principles
 
-Follow the Workflow section below as the sole implementation procedure.
-Imported agent files provide domain knowledge and coding standards only.
-Ignore any phase-based, subagent-based, or tracking-file-based procedures
-from imported files.
+Every implementation produces self-sufficient, working code aligned with the issue requirements:
+
+* Mirror existing architecture, data-flow, and naming patterns.
+* Avoid partial implementations that leave completed steps in an indeterminate state.
+* Implement only what the issue asks for.
+* Review existing tests and scripts for updates rather than creating new ones.
+* Reference relevant guidance in `.github/instructions/` before editing code.
 
 ## Workflow
 
-1. Read the issue title and description from
-   `${{ steps.sanitized.outputs.text }}`. Identify what needs to change,
+1. Read the issue title and description. Identify what needs to change,
    which files are involved, and any acceptance criteria.
 
 2. Search for relevant files, existing patterns,
@@ -42,7 +41,7 @@ from imported files.
 4. Make the changes. Mirror existing architecture, naming,
    and data-flow patterns. Avoid partial implementations.
 
-5. Verify the changes compile, follow repo conventions,
+5. Verify the changes follow repo conventions
    and satisfy the issue's acceptance criteria.
 
 6. Create a PR that references the issue. Include
