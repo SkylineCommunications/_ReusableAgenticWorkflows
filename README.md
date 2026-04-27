@@ -83,7 +83,7 @@ gh aw upgrade                       # Upgrade to the latest gh-aw engine version
   'pr-review',
   'pr-summarize'
 ) | ForEach-Object {
-  gh aw remove "SkylineCommunications/_ReusableAgenticWorkflows/$_"
+  gh aw remove "$_"
 }
 
 # Re-add all workflows with the latest version
