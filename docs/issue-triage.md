@@ -2,19 +2,12 @@
 
 > For an overview of all available workflows, see the [main README](../README.md).
 
-**Automatically classify new issues, detect duplicates, and assess implementation readiness**
+**Automatically label unlabeled open issues and notify their authors**
 
-The [Issue Triage workflow](../workflows/issue-triage.md?plain=1)
-runs whenever a new issue is opened or an issue is labeled `needs-triage`. It
-classifies the issue by type and component, searches for duplicates, evaluates
-quality, and — when all criteria are met — marks the issue `agent-ready` so the
-[Issue Implementation](issue-implement.md) workflow can act on it automatically.
-
-> **Powered by [microsoft/hve-core](https://github.com/microsoft/hve-core)** —
-> this workflow imports the battle-tested backlog triage, community interaction,
-> and backlog planning instruction sets directly from Microsoft's open-source
-> hve-core repository. You get the same rigorous issue classification standards
-> that Microsoft uses in their own repositories, packaged as a drop-in workflow.
+The [Issue Triage agent](../agents/issue-triage.agent.md)
+scans all open issues that have no labels. For each unlabeled issue it analyzes
+the title and body, applies a single classification label, and posts a comment
+mentioning the issue author with a brief explanation of the reasoning.
 
 ## Installation
 
@@ -34,96 +27,99 @@ No secrets or variables are required.
 
 ### Permissions
 
-| Permission | Level  | Purpose                                        |
-|------------|--------|------------------------------------------------|
-| `contents` | `read` | Read repo files when needed for context        |
-| `issues`   | `read` | Search for duplicate and related issues        |
+| Permission | Level   | Purpose                                  |
+|------------|---------|------------------------------------------|
+| `issues`   | `write` | Add labels and post comments on issues   |
 
 ### Labels
 
-The workflow manages the following labels. Ensure they exist in your repository
-(maintained via a label-sync workflow if you use the hve-core label model):
+The agent applies exactly one of the following labels per issue. Ensure they
+exist in your repository before running the agent:
 
-**Type labels** (applied during triage):
-
-| Label            | When applied                          |
-|------------------|---------------------------------------|
-| `feature`        | New functionality request             |
-| `bug`            | Defect or broken behaviour            |
-| `documentation`  | Docs gap or inaccuracy                |
-| `maintenance`    | Dependency updates, refactoring       |
-| `infrastructure` | CI/CD, tooling, build changes         |
-| `enhancement`    | Improvement to existing functionality |
-| `security`       | Security-related issue                |
-| `breaking-change`| Issue that implies a breaking change  |
-
-**Component labels** (applied during triage):
-
-`agents`, `prompts`, `instructions`, `skills`
-
-**Quality / workflow labels**:
-
-| Label           | Purpose                                                |
-|-----------------|--------------------------------------------------------|
-| `good-first-issue` | Well-scoped issue suitable for a first contribution |
-| `agent-ready`   | Issue is clear enough for automated implementation     |
-| `needs-triage`  | Removed once triage is complete                        |
+| Label             | When applied                                                                 |
+|-------------------|------------------------------------------------------------------------------|
+| `bug`             | Problem or error in the code that needs fixing                               |
+| `feature`         | New feature request or enhancement to existing functionality                 |
+| `enhancement`     | Improvement to existing features or code                                     |
+| `documentation`   | Missing or unclear documentation                                             |
+| `question`        | Issue is asking for clarification or information                              |
+| `help-wanted`     | Good candidate for external contributions                                    |
+| `good-first-issue`| Well-scoped issue suitable for newcomers                                     |
+| `community`       | Community engagement (events, discussions) from non-contributor authors      |
 
 ## What it does
 
 ### Activation
 
-The workflow activates when:
+The agent runs on demand (or on a schedule) and processes **all currently open
+issues that have no labels**.
 
-- A new issue is **opened**, OR
-- An issue is **labeled** `needs-triage`
+It skips issues that:
 
-AND the issue does not already have type labels applied.
-
-It calls `noop` and stops when:
-
-- The triggering label is not `needs-triage` (on a `labeled` event)
-- The issue already has type labels and does not have `needs-triage`
-- The issue is closed
+- Already have any of the managed labels applied
+- Have been assigned to any user (especially non-bot users)
 
 ### Triage procedure
 
-1. Reads the issue title, body, labels, and template metadata.
-2. Classifies the issue type using conventional commit patterns.
-3. Classifies the component from bug-report dropdown fields or body content.
-4. Searches for duplicate or related open issues.
-5. Assesses issue quality: missing fields, vague descriptions, scope relevance.
-6. Removes `needs-triage` and applies the determined type and component labels.
-7. Evaluates whether the issue qualifies for `agent-ready` (conservative criteria).
+1. Lists all open, unlabeled, unassigned issues in the repository.
+2. For each issue, reads the title and body.
+3. Selects the single best-fit label from the allowed set.
+4. Adds the label to the issue.
+5. Posts a comment mentioning the issue author with the reasoning and a
+   confidence indicator (see [Comment format](#comment-format) below).
+
+### Comment format
+
+Each triaged issue receives a comment in this format:
+
+```markdown
+### 🏷️ Issue Triaged
+
+Hi @{author}! I've categorized this issue as **{label_name}** based on the following analysis:
+
+**Reasoning**: {brief_explanation_of_why_this_label}
+
+<details>
+<summary><b>View Triage Details</b></summary>
+
+#### Analysis
+- **Keywords detected**: {list_of_keywords_that_matched}
+- **Issue type indicators**: {what_made_this_fit_the_category}
+- **Confidence**: {High/Medium/Low}
+
+#### Recommended Next Steps
+- {context_specific_suggestion_1}
+- {context_specific_suggestion_2}
+
+</details>
+```
+
+### Batch comment optimization
+
+When multiple issues are triaged in a single run:
+1. Each issue receives its own label and comment individually.
+2. Optionally, a discussion is created summarizing all triage actions for that run.
 
 ### Output behaviour
 
-| Situation                    | Action                                                                     |
-|------------------------------|----------------------------------------------------------------------------|
-| Well-formed issue            | Remove `needs-triage`, add type + component labels; add `agent-ready` if qualified |
-| Issue needs more information | Remove `needs-triage`, add type if determinable, comment requesting details |
-| Potential duplicate found    | Normal triage + comment noting the related issue(s)                        |
-| Unclassifiable issue         | Remove `needs-triage`, comment asking for clarification                    |
+| Situation                       | Action                                          |
+|---------------------------------|-------------------------------------------------|
+| Unlabeled, unassigned issue     | Add label + post author comment with reasoning  |
+| Issue already has a label       | Skip                                            |
+| Issue is assigned to a user     | Skip                                            |
 
 ## What it reads
 
-- Issue title, body, labels, and template metadata
-- Open issues (for duplicate detection)
+- Open issue list (title, body, labels, assignees)
 
 ## What it creates or updates
 
-- Label changes on the triaged issue (up to 5 labels added, `needs-triage` removed)
-- Up to 3 comments on the issue (duplicate notices, clarifying questions)
-- Up to 5 sub-issues (for splitting oversized issues)
+- One label added per triaged issue
+- One comment posted per triaged issue
 
 ## Human in the Loop
 
-- **Review label assignments** — verify the type and component labels are correct,
-  especially for ambiguous issues.
-- **Answer clarifying questions** — when the workflow requests more detail, update
-  the issue body or reply in the comment thread, then re-apply `needs-triage`.
-- **Duplicate links** — the workflow notes potential duplicates but does not close
-  issues; a human must decide whether to close or keep them.
-- **`agent-ready` qualification** — the workflow applies conservative criteria;
-  manually add `agent-ready` to issues that qualify but were not automatically
-  promoted.
+- **Review label assignments** — verify the applied label is correct, especially
+  for ambiguous issues. Adjust manually if needed.
+- **Assigned issues** — the agent skips assigned issues; triage them manually
+  or unassign before re-running if automatic labeling is still desired.

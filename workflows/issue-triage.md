@@ -29,5 +29,6 @@ tools:
 timeout-minutes: 10
 ---
 
-# Agentic Triage
+# Issue Triage
+
 {{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/issue-triage.agent.md}}
