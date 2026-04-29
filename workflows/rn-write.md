@@ -1,32 +1,38 @@
 ---
-description: "Automated release note entry written when a pull request is merged"
+description: |
+  Automated release note writer that runs when a pull request is merged.
+  Reads the PR diff and any linked issues, then posts a plain-language release
+  note entry as a comment — written for a changelog audience rather than for
+  PR reviewers. The comment includes a machine-readable anchor so a downstream
+  publish workflow can push it to an external release note platform when a
+  publish-rn label is applied.
+
 on:
   pull_request:
     types: [closed]
     forks: ["*"]
-  bots:
-    - "Copilot"
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
-engine: copilot
-timeout-minutes: 10
-inlined-imports: true
-
-imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md
-
 permissions:
-  contents: read
   issues: read
   pull-requests: write
+
+network: defaults
 
 safe-outputs:
   add-comment:
     max: 1
-    target: "triggering"
   noop:
     max: 1
+
+tools:
+  web-fetch:
+  github:
+    toolsets: [pull-requests]
+    min-integrity: none # This workflow is allowed to examine and comment on any merged PR
+
+timeout-minutes: 10
 ---
 
 # RN Write
