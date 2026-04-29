@@ -44,12 +44,26 @@ A well-formed release note entry follows this order:
 | Component or version scope when applicable | Subjective quality judgments |
 | Key technical details operators or integrators must act on | Restating the PR title verbatim as the entire entry |
 
+## Classification
+
+Before writing, classify the change:
+
+**Type** — pick exactly one:
+- `New Feature/Enhancement` — new functionality or improvements to existing behavior
+- `Bug Fix` — corrects incorrect or unintended behavior
+- `Release Notes` — documentation-only or release note updates
+
+**Breaking Change** — `true` if the change involves an API change, removed feature, renamed parameter, or any behavior change that requires consumers to take action. Otherwise `false`.
+
 ## Output Format
 
 After generating the release note, post it as a PR comment using exactly this structure. The `## 📋 Release Note` heading is the identifier used by the publish workflow to locate this comment — keep it exactly as shown:
 
 ```markdown
 ## 📋 Release Note
+
+**Type:** {type}
+**Breaking Change:** {true or false}
 
 {release note text}
 
