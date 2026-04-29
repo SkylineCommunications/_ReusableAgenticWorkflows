@@ -9,32 +9,29 @@ description: |
 
 on:
   pull_request:
-    types: [closed]
-    forks: ["*"]
+    types: [closed]	
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
-permissions:
+permissions:	
   issues: read
-  pull-requests: write
+  pull-requests: read
 
 network: defaults
 
-safe-outputs:
+safe-outputs:  
   add-comment:
-    max: 1
   noop:
     max: 1
 
 tools:
   web-fetch:
   github:
-    toolsets: [pull-requests]
-    min-integrity: none # This workflow is allowed to examine and comment on any merged PR
+    toolsets: [pull_requests, issues]
+    min-integrity: none # This workflow is allowed to examine and comment on any issues
 
 timeout-minutes: 10
 ---
 
-# RN Write
-
+# Agentic Release Notes Writer
 {{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}
