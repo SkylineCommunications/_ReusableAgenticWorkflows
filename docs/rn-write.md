@@ -99,4 +99,4 @@ The `## 📋 Release Note` heading is what the publish workflow uses to locate t
 ## Human in the Loop
 
 - **Accuracy** — the release note is AI-generated. Always review the comment before applying `rn-publish`. Edit the comment directly on GitHub if corrections are needed.
-- **Unmerged closures** — the workflow fires on all `closed` events; it calls `noop` for PRs that were not merged, so no comment or label is applied in those cases.
+- **Unmerged closures** — the workflow fires on all `closed` events; the agent checks the `merged` state first and calls `noop` immediately if the PR was not merged, so no comment or label is applied in those cases.
