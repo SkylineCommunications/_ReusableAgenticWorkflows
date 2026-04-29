@@ -1,0 +1,110 @@
+name: Skyline Push Release Note
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  push-release-note:
+    if: github.event.label.name == 'publish-rn'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Parse release note comment and push to Skyline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SKYLINE_USERNAME: ${{ secrets.SKYLINE_USERNAME }}
+          SKYLINE_PASSWORD: ${{ secrets.SKYLINE_PASSWORD }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title --jq '.title')
+
+          # Find the RN draft comment by marker
+          RN_COMMENT=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq '[.[] | select(.body | test("## 📋 Release Note"))] | last | .body')
+
+          if [ -z "$RN_COMMENT" ] || [ "$RN_COMMENT" = "null" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ No release note draft found. Run the summarizer first (it triggers automatically on PR merge)."
+            exit 1
+          fi
+
+          TYPE=$(echo "$RN_COMMENT"    | grep -oP '(?<=\*\*Type:\*\*\s).*'            | head -1 | xargs)
+          BREAKING=$(echo "$RN_COMMENT" | grep -oP '(?<=\*\*Breaking Change:\*\*\s).*' | head -1 | xargs)
+
+          [ -z "$TYPE" ]     && TYPE="New Feature/Enhancement"
+          [ -z "$BREAKING" ] && BREAKING="false"
+
+          DESCRIPTION=$(echo "$RN_COMMENT" \
+            | sed -n '/## .*Release Note Draft/,$ p' \
+            | grep -v '## .*Release Note Draft' \
+            | grep -v '^\*\*Type:\*\*' \
+            | grep -v '^\*\*Breaking' \
+            | grep -v '^---$' \
+            | grep -v '^<!--' \
+            | grep -v '^> ' \
+            | sed '/^[[:space:]]*$/d' \
+            | head -c 4000)
+
+          if [ -z "$DESCRIPTION" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Could not extract a description from the release note draft."
+            exit 1
+          fi
+
+          TOKEN_RESPONSE=$(curl -s -X POST "https://api.skyline.be/Token" \
+            -d "grant_type=password&username=${SKYLINE_USERNAME}&password=${SKYLINE_PASSWORD}")
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+
+          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Failed to authenticate with Skyline API. Check \`SKYLINE_USERNAME\` and \`SKYLINE_PASSWORD\` secrets."
+            exit 1
+          fi
+
+          if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
+
+          PAYLOAD=$(jq -n \
+            --arg title "$PR_TITLE" \
+            --arg desc "$DESCRIPTION" \
+            --arg type "$TYPE" \
+            --argjson breaking "$BREAKING_JSON" \
+            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}')
+
+          RESPONSE=$(curl -s -X POST "https://api.skyline.be/api/ReleaseNotes" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          RN_ID=$(echo "$RESPONSE" | jq -r '.ID')
+
+          if [ -z "$RN_ID" ] || [ "$RN_ID" = "null" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Skyline API call failed: $(echo "$RESPONSE" | jq -r '.Message // .')"
+            exit 1
+          fi
+
+          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            -f body="✅ Release note pushed to DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$RN_ID"
+
+      - name: Update labels
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Remove publish-rn label regardless of outcome
+          gh api "repos/$REPO/issues/$PR_NUMBER/labels/publish-rn" -X DELETE 2>/dev/null || true
+          # Add rn-published label only on success
+          if [ "${{ job.status }}" = "success" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/labels" -f labels[]="rn-published" 2>/dev/null || true
+            gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-draft" -X DELETE 2>/dev/null || true
+          fi
