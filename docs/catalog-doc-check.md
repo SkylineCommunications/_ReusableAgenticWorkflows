@@ -33,10 +33,11 @@ This walks you through adding the workflow to your repository.
 
 ### Permissions
 
-| Permission | Level   | Purpose                                         |
-|------------|---------|-------------------------------------------------|
-| `contents` | `read`  | Read the `CatalogInformation/README.md` file    |
-| `issues`   | `write` | Open an issue when validation findings exist    |
+| Permission  | Level      | Purpose                                                       |
+|-------------|------------|---------------------------------------------------------------|
+| `read-all`  | (all read) | Read repository contents and issues                           |
+
+The `safe-outputs: create-issue` declaration authorizes the engine to open issues in a controlled way — no explicit write permission is required in the permissions block.
 
 ## What it does
 
@@ -69,8 +70,10 @@ The agent reads `CatalogInformation/README.md` and runs 8 checks in order:
 
 | Situation | Action |
 |-----------|--------|
-| One or more ERROR or WARNING findings | Opens a single issue titled `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` with the full structured report |
-| All checks pass | No issue created — reports compliance |
+| Findings exist, no open issue yet | Opens a new issue titled `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` |
+| Findings exist, open issue already present | Updates the existing issue body with the latest results — no duplicate created |
+| All checks pass, open issue exists | Updates the existing issue body to reflect compliance — close it manually when ready |
+| All checks pass, no open issue | No action taken — reports compliance |
 
 ## What it reads
 

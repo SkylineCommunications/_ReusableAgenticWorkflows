@@ -10,22 +10,23 @@ description: |
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  issues: write
+permissions: read-all
 
 network: defaults
 
 safe-outputs:
   create-issue:
     max: 1
+  update-issue:
+    max: 1
   noop:
     max: 1
 
 tools:
+  web-fetch:
   github:
-    toolsets: [contents, issues]
-    min-integrity: none
+    toolsets: [issues]
+    min-integrity: none # This workflow is allowed to read content and open issues
 
 timeout-minutes: 10
 ---
