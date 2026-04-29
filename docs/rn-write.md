@@ -64,10 +64,9 @@ multi-topic changes use a short bullet list.
 
 ### Output
 
-The release note is posted as a single comment on the merged PR. A hidden HTML anchor is included so downstream workflows can locate the comment reliably via the GitHub API:
+The release note is posted as a single comment on the merged PR. The `## 📋 Release Note` heading is what downstream workflows use to identify and extract the comment:
 
 ```markdown
-<!-- rn-write:release-note -->
 ## 📋 Release Note
 
 {release note text}
@@ -87,26 +86,17 @@ The release note is posted as a single comment on the merged PR. A hidden HTML a
 
 ## Publishing to an external platform
 
-The hidden `<!-- rn-write:release-note -->` anchor in the comment body lets a
-second workflow push the generated entry to your release note platform on
-demand. The recommended pattern:
+The `## 📋 Release Note` heading is what the publish workflow uses to locate the release note comment on a PR. This also means anyone can manually write a `## 📋 Release Note` comment on any PR and use the same publish flow, even on repositories where the agentic workflow is not active.
 
-1. `rn-write` runs on merge and posts the RN comment.
-2. You review the comment on the closed PR.
-3. You add a label (e.g. `publish-rn`) to the PR.
-4. A publish workflow listens for `pull_request: types: [labeled]`, filters on
-   `label.name == 'publish-rn'`, searches the PR's comments for one containing
-   `<!-- rn-write:release-note -->`, extracts the body, and sends it to your
-   platform.
+### End-to-end flow
 
-This works on closed and merged PRs — GitHub fires `labeled` events regardless
-of PR state.
+1. **PR is merged** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, and applies the `rn-ready` label to the PR.
+2. **Human reviews** — open the closed PR, read the generated comment. If corrections are needed, edit the comment directly on GitHub. The publish step reads whatever text is in the comment at the moment the label is applied.
+3. **Human approves** — add the `rn-publish` label to the PR.
+4. **Publish workflow runs** — a GitHub Action triggers on `pull_request: labeled` where `label.name == 'rn-publish'`. It searches the PR's comments for the most recent one containing `## 📋 Release Note`, extracts the body, and pushes it to the release note platform.
+5. **Cleanup** — the publish workflow removes the `rn-ready` and `rn-publish` labels and applies `rn-completed` to the PR, marking it as done.
 
 ## Human in the Loop
 
-- **Accuracy** — the release note is AI-generated. Review the comment before
-  adding the publish label. Edit the comment directly on GitHub if corrections
-  are needed — the publish workflow reads whatever text is in the comment at
-  the time the label is applied.
-- **Unmerged closures** — the workflow fires on all `closed` events; it calls
-  `noop` for PRs that were not merged, so no comment is posted in those cases.
+- **Accuracy** — the release note is AI-generated. Always review the comment before applying `rn-publish`. Edit the comment directly on GitHub if corrections are needed.
+- **Unmerged closures** — the workflow fires on all `closed` events; it calls `noop` for PRs that were not merged, so no comment or label is applied in those cases.

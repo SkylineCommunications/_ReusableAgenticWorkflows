@@ -8,19 +8,23 @@ description: |
   publish-rn label is applied.
 
 on:
-  pull_request:
-    types: [closed]	
+  pull_request_target:
+    types: [closed]
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
-permissions:	
+permissions:
+  contents: read
   issues: read
   pull-requests: read
 
 network: defaults
 
-safe-outputs:  
+safe-outputs:
   add-comment:
+    max: 1
+  add-labels:
+    max: 1
   noop:
     max: 1
 
@@ -34,4 +38,5 @@ timeout-minutes: 10
 ---
 
 # Agentic Release Notes Writer
+
 {{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}

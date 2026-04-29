@@ -46,17 +46,15 @@ A well-formed release note entry follows this order:
 
 ## Output Format
 
-Post the release note as a PR comment using exactly this structure. The hidden HTML comment is a machine-readable anchor used by downstream publish workflows — do not omit or alter it.
+After generating the release note, post it as a PR comment using exactly this structure. The `## 📋 Release Note` heading is the identifier used by the publish workflow to locate this comment — keep it exactly as shown:
 
 ```markdown
-<!-- rn-write:release-note -->
 ## 📋 Release Note
 
 {release note text}
 
----
-🤖 This release note was generated automatically.
 ```
+Then apply the `rn-ready` label to the PR to signal that human review is pending before publishing.
 
 ## Linked Issue Guidance
 
