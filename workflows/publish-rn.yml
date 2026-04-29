@@ -36,21 +36,28 @@ jobs:
             exit 1
           fi
 
-          TYPE=$(echo "$RN_COMMENT"    | grep -oP '(?<=\*\*Type:\*\*\s).*'            | head -1 | xargs)
-          BREAKING=$(echo "$RN_COMMENT" | grep -oP '(?<=\*\*Breaking Change:\*\*\s).*' | head -1 | xargs)
+          TYPE=$(printf '%s\n' "$RN_COMMENT" \
+            | sed -n 's/^\*\*Type:\*\*[[:space:]]*//' p \
+            | head -n 1 | xargs)
+          BREAKING=$(printf '%s\n' "$RN_COMMENT" \
+            | sed -n 's/^\*\*Breaking Change:\*\*[[:space:]]*//' p \
+            | head -n 1 | xargs)
 
           [ -z "$TYPE" ]     && TYPE="New Feature/Enhancement"
           [ -z "$BREAKING" ] && BREAKING="false"
 
-          DESCRIPTION=$(echo "$RN_COMMENT" \
-            | sed -n '/## .*Release Note Draft/,$ p' \
-            | grep -v '## .*Release Note Draft' \
-            | grep -v '^\*\*Type:\*\*' \
-            | grep -v '^\*\*Breaking' \
-            | grep -v '^---$' \
-            | grep -v '^<!--' \
-            | grep -v '^> ' \
-            | sed '/^[[:space:]]*$/d' \
+          DESCRIPTION=$(printf '%s\n' "$RN_COMMENT" \
+            | awk '
+                /^## .*Release Note/ { in_rn=1; next }
+                !in_rn { next }
+                /^\*\*Type:\*\*/ { next }
+                /^\*\*Breaking/ { next }
+                /^---$/ { next }
+                /^<!--/ { next }
+                /^> / { next }
+                /^[[:space:]]*$/ { next }
+                { print }
+              ' \
             | head -c 4000)
 
           if [ -z "$DESCRIPTION" ]; then
@@ -59,11 +66,15 @@ jobs:
             exit 1
           fi
 
-          TOKEN_RESPONSE=$(curl -s -X POST "https://api.skyline.be/Token" \
-            -d "grant_type=password&username=${SKYLINE_USERNAME}&password=${SKYLINE_PASSWORD}")
-          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token')
+          TOKEN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/Token" \
+            --data-urlencode "grant_type=password" \
+            --data-urlencode "username=${SKYLINE_USERNAME}" \
+            --data-urlencode "password=${SKYLINE_PASSWORD}")
+          TOKEN_HTTP=$(echo "$TOKEN_RESPONSE" | tail -1)
+          TOKEN_BODY=$(echo "$TOKEN_RESPONSE" | head -n -1)
+          ACCESS_TOKEN=$(echo "$TOKEN_BODY" | jq -r '.access_token')
 
-          if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+          if [ "$TOKEN_HTTP" != "200" ] || [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
             gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
               -f body="❌ Failed to authenticate with Skyline API. Check \`SKYLINE_USERNAME\` and \`SKYLINE_PASSWORD\` secrets."
             exit 1
@@ -78,14 +89,16 @@ jobs:
             --argjson breaking "$BREAKING_JSON" \
             '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}')
 
-          RESPONSE=$(curl -s -X POST "https://api.skyline.be/api/ReleaseNotes" \
+          RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
+          RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
+          RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
 
           RN_ID=$(echo "$RESPONSE" | jq -r '.ID')
 
-          if [ -z "$RN_ID" ] || [ "$RN_ID" = "null" ]; then
+          if [ "$RN_HTTP" != "200" ] || [ -z "$RN_ID" ] || [ "$RN_ID" = "null" ]; then
             gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
               -f body="❌ Skyline API call failed: $(echo "$RESPONSE" | jq -r '.Message // .')"
             exit 1
