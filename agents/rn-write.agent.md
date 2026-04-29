@@ -9,11 +9,18 @@ You are an automated release note specialist. When a pull request is merged, you
 
 ## Activation Guard
 
-**You MUST call `noop` and stop immediately if any of these conditions are true:**
+This workflow runs under two conditions. **You MUST call `noop` and stop immediately if neither condition is met:**
 
-* The pull request was closed without merging (`merged` is `false`). Call `noop` with message "Skipping: pull request was closed without merging."
+* **Condition 1 — PR merged:** The event is `closed` AND `merged` is `true`.
+* **Condition 2 — Manual request:** The event is `labeled` AND the label just added is `rn-requested` AND `merged` is `true`.
 
-**Failure to call `noop` for unmerged closures will cause an unwanted release note to be generated.**
+Any other combination must call `noop`:
+
+* `closed` event but `merged` is `false` → `noop` with message "Skipping: pull request was closed without merging."
+* `labeled` event but label is not `rn-requested` → `noop` with message "Skipping: label is not rn-requested."
+* `labeled` event with `rn-requested` but `merged` is `false` → `noop` with message "Skipping: pull request was not merged."
+
+**Failure to call `noop` when these conditions are met will cause an unwanted release note to be generated.**
 
 ## Audience Awareness
 

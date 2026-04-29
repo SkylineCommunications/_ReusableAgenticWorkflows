@@ -24,7 +24,11 @@ This walks you through adding the workflow to your repository.
 
 ## Configuration
 
-No secrets or variables are required.
+### Secrets
+
+| Secret                 | Purpose                                              |
+|------------------------|------------------------------------------------------|
+| `COPILOT_GITHUB_TOKEN` | Required by the `gh aw` engine to run the Copilot-powered agent. The installer creates or reuses this automatically. |
 
 ### Permissions
 
@@ -38,13 +42,17 @@ No secrets or variables are required.
 
 ### Activation
 
-The workflow triggers when a pull request is **closed** (including from forks).
+The workflow triggers when:
+
+- A pull request is **closed** (the agent skips unmerged closures — see below)
+- The `rn-requested` label is **added** to any merged PR (useful for backfilling release notes on already-closed PRs)
 
 Bot PRs (`dependabot[bot]`, `github-actions[bot]`) are skipped automatically.
 
 It calls `noop` and stops when:
 
 - The PR was closed without merging
+- A label other than `rn-requested` was added
 
 ### Release note generation
 

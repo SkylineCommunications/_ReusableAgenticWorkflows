@@ -9,7 +9,7 @@ description: |
 
 on:
   pull_request_target:
-    types: [closed]
+    types: [closed, labeled]
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 

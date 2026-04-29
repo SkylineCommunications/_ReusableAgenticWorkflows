@@ -29,7 +29,11 @@ This walks you through adding the workflow to your repository.
 
 ## Configuration
 
-No secrets or variables are required.
+### Secrets
+
+| Secret                 | Purpose                                              |
+|------------------------|------------------------------------------------------|
+| `COPILOT_GITHUB_TOKEN` | Required by the `gh aw` engine to run the Copilot-powered agent. The installer creates or reuses this automatically. |
 
 ### Permissions
 
