@@ -1,6 +1,6 @@
 ---
 name: Release Notes Writer
-description: "Generates plain-language summaries of pull request changes for technical and non-technical audiences - Brought to you by SkylineCommunications/MauroDruwel"
+description: "Generates plain-language summaries of pull request changes non-technical audiences"
 ---
 
 # Release Note Writer
