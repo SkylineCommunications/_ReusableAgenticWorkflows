@@ -17,6 +17,8 @@ network: defaults
 safe-outputs:
   create-issue:
     max: 1
+  update-issue:
+    max: 1
   noop:
     max: 1
 
