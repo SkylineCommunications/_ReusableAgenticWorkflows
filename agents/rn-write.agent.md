@@ -12,13 +12,13 @@ You are an automated release note specialist. When a pull request is merged, you
 This workflow runs under two conditions. **You MUST call `noop` and stop immediately if neither condition is met:**
 
 * **Condition 1 — PR merged:** The event is `closed` AND `merged` is `true`.
-* **Condition 2 — Manual request:** The event is `labeled` AND the label just added is `rn-requested` AND `merged` is `true`.
+* **Condition 2 — Manual request:** The event is `labeled` AND the label just added is `rn-request` AND `merged` is `true`.
 
 Any other combination must call `noop`:
 
 * `closed` event but `merged` is `false` → `noop` with message "Skipping: pull request was closed without merging."
-* `labeled` event but label is not `rn-requested` → `noop` with message "Skipping: label is not rn-requested."
-* `labeled` event with `rn-requested` but `merged` is `false` → `noop` with message "Skipping: pull request was not merged."
+* `labeled` event but label is not `rn-request` → `noop` with message "Skipping: label is not rn-request."
+* `labeled` event with `rn-request` but `merged` is `false` → `noop` with message "Skipping: pull request was not merged."
 
 **Failure to call `noop` when these conditions are met will cause an unwanted release note to be generated.**
 
@@ -83,7 +83,7 @@ After generating the release note, post it as a PR comment using exactly this st
 {release note text}
 
 ```
-Then apply the `rn-ready` label to the PR to signal that human review is pending before publishing.
+Then apply the `rn-proposal` label and remove the `rn-request` label from the PR to signal that the draft is ready for human review before publishing.
 
 ## Linked Issue Guidance
 

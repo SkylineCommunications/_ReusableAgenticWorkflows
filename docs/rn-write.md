@@ -45,14 +45,14 @@ This walks you through adding the workflow to your repository.
 The workflow triggers when:
 
 - A pull request is **closed** (the agent skips unmerged closures — see below)
-- The `rn-requested` label is **added** to any merged PR (useful for backfilling release notes on already-closed PRs)
+- The `rn-request` label is **added** to any merged PR (useful for backfilling release notes on already-closed PRs)
 
 Bot PRs (`dependabot[bot]`, `github-actions[bot]`) are skipped automatically.
 
 It calls `noop` and stops when:
 
 - The PR was closed without merging
-- A label other than `rn-requested` was added
+- A label other than `rn-request` was added
 
 ### Release note generation
 
@@ -91,6 +91,8 @@ The release note is posted as a single comment on the merged PR. The `## 📋 Re
 ## What it creates or updates
 
 - **1 comment** on the PR with the plain-language release note entry
+- Adds the `rn-proposal` label to signal the draft is ready for review
+- Removes the `rn-request` label
 
 ## Publishing to an external platform
 
@@ -98,11 +100,11 @@ The `## 📋 Release Note` heading is what the publish workflow uses to locate t
 
 ### End-to-end flow
 
-1. **PR is merged** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, and applies the `rn-ready` label to the PR.
+1. **PR is merged** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, applies the `rn-proposal` label, and removes the `rn-request` label.
 2. **Human reviews** — open the closed PR, read the generated comment. If corrections are needed, edit the comment directly on GitHub. The publish step reads whatever text is in the comment at the moment the label is applied.
 3. **Human approves** — add the `rn-publish` label to the PR.
 4. **Publish workflow runs** — a GitHub Action triggers on `pull_request: labeled` where `label.name == 'rn-publish'`. It searches the PR's comments for the most recent one containing `## 📋 Release Note`, extracts the body, and pushes it to the release note platform.
-5. **Cleanup** — the publish workflow removes the `rn-ready` and `rn-publish` labels and applies `rn-completed` to the PR, marking it as done.
+5. **Cleanup** — the publish workflow removes the `rn-proposal` and `rn-publish` labels and applies `rn-published` to the PR, marking it as done.
 
 ## Human in the Loop
 

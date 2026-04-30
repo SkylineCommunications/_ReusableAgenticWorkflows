@@ -25,15 +25,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Use configured solution name, or derive from repo name by stripping SLC-X- prefix
-          # If SOLUTION_NAME is explicitly empty, Functionality and Application are omitted from the payload
+          # If the SOLUTION_NAME variable is configured, use it and include Application/Functionality in the payload.
+          # If the variable does not exist (GitHub does not allow empty-valued variables), push without them.
           if [ -n "$SOLUTION_NAME" ]; then
             SOLUTION="$SOLUTION_NAME"
           else
-            SOLUTION=$(echo "$REPO" | cut -d'/' -f2 | sed 's/^[A-Z]*-[A-Z]-//')
+            SOLUTION=""
+          fi
+
+          if [ -z "$COLLABORATION_USERNAME" ] || [ -z "$COLLABORATION_PASSWORD" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Missing required secrets: \`COLLABORATION_USERNAME\` and/or \`COLLABORATION_PASSWORD\` are not configured in this repository."
+            exit 1
           fi
 
           PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title --jq '.title')
+
+          if [ -z "$PR_TITLE" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Could not retrieve the PR title. The PR must have a title before the release note can be published."
+            exit 1
+          fi
 
           # Find the RN draft comment by marker
           RN_COMMENT=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
@@ -52,8 +64,27 @@ jobs:
             | sed -n 's/^\*\*Breaking Change:\*\*[[:space:]]*//p' \
             | head -n 1 | xargs)
 
-          [ -z "$TYPE" ]     && TYPE="New Feature/Enhancement"
-          [ -z "$BREAKING" ] && BREAKING="false"
+          if [ -z "$TYPE" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Could not find \`**Type:**\` in the release note draft. Please edit the comment and set it to one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
+            exit 1
+          fi
+          if ! printf '%s' "$TYPE" | grep -qE "^(New Feature/Enhancement|Bug Fix|Release Notes)$"; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Invalid Type \`$TYPE\` in the release note draft. Must be one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
+            exit 1
+          fi
+
+          if [ -z "$BREAKING" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Could not find \`**Breaking Change:**\` in the release note draft. Please edit the comment and set it to \`true\` or \`false\`."
+            exit 1
+          fi
+          if [ "$BREAKING" != "true" ] && [ "$BREAKING" != "false" ]; then
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="❌ Invalid Breaking Change value \`$BREAKING\` in the release note draft. Must be \`true\` or \`false\`."
+            exit 1
+          fi
 
           DESCRIPTION=$(printf '%s\n' "$RN_COMMENT" \
             | awk '
@@ -91,7 +122,7 @@ jobs:
           fi
 
           if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
-          if [ -n "$SOLUTION_NAME" ]; then HAS_SOLUTION=true; else HAS_SOLUTION=false; fi
+          if [ -n "$SOLUTION" ]; then HAS_SOLUTION=true; else HAS_SOLUTION=false; fi
 
           PAYLOAD=$(jq -n \
             --arg title "$PR_TITLE" \
@@ -103,23 +134,42 @@ jobs:
             '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}
              + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
 
-          RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
-          RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
-          RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
+          # Check for a previously published RN — if found, update it instead of creating a duplicate
+          EXISTING_SUCCESS=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq '[.[] | select(.body | test("collaboration.dataminer.services/releasenotes/"))] | last | .body // ""')
+          EXISTING_RN_ID=$(echo "$EXISTING_SUCCESS" | grep -oE 'releasenotes/[0-9]+' | grep -oE '[0-9]+' || echo "")
 
-          RN_ID=$(echo "$RESPONSE" | jq -r '.ID // empty')
-
-          if { [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; } || [ -z "$RN_ID" ]; then
+          if [ -n "$EXISTING_RN_ID" ]; then
+            PATCH_PAYLOAD=$(echo "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
+            RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$PATCH_PAYLOAD")
+            RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
+            RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
+            if [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; then
+              gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                -f body="❌ Skyline API call failed while updating release note $EXISTING_RN_ID (HTTP $RN_HTTP): $(echo "$RESPONSE" | jq -r '.Message // .')"
+              exit 1
+            fi
             gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Skyline API call failed (HTTP $RN_HTTP): $(echo "$RESPONSE" | jq -r '.Message // .')"
-            exit 1
+              -f body="✅ Release note updated on DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$EXISTING_RN_ID"
+          else
+            RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
+              -H "Authorization: Bearer $ACCESS_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+            RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
+            RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
+            RN_ID=$(echo "$RESPONSE" | jq -r '.ID // empty')
+            if { [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; } || [ -z "$RN_ID" ]; then
+              gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                -f body="❌ Skyline API call failed (HTTP $RN_HTTP): $(echo "$RESPONSE" | jq -r '.Message // .')"
+              exit 1
+            fi
+            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+              -f body="✅ Release note pushed to DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$RN_ID"
           fi
-
-          gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-            -f body="✅ Release note pushed to DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$RN_ID"
 
       - name: Update labels
         if: always()
@@ -130,7 +180,7 @@ jobs:
         run: |
           # Remove workflow labels regardless of outcome
           gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-publish" -X DELETE 2>/dev/null || true
-          gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-ready" -X DELETE 2>/dev/null || true
+          gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-proposal" -X DELETE 2>/dev/null || true
           # Add rn-published label only on success
           if [ "${{ job.status }}" = "success" ]; then
             gh api "repos/$REPO/issues/$PR_NUMBER/labels" -f labels[]="rn-published" 2>/dev/null || true

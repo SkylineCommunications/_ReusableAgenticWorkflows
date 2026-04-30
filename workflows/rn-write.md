@@ -9,18 +9,16 @@ description: |
 
 on:
   pull_request_target:
-    types: [closed]
-  label_command:
-    name: rn-request
-    events: [pull_request]
-    remove_label: false
+    types: [closed, labeled]
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
+
+if: github.event.action != 'labeled' || github.event.label.name == 'rn-request'
 
 permissions:
   contents: read
   issues: read
-  pull-requests: read
+  pull-requests: write
 
 network: defaults
 
@@ -28,6 +26,8 @@ safe-outputs:
   add-comment:
     max: 1
   add-labels:
+    max: 1
+  remove-labels:
     max: 1
   noop:
     max: 1
