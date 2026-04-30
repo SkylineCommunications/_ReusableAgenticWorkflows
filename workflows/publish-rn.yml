@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   push-release-note:
-    if: github.event.label.name == 'publish-rn'
+    if: github.event.label.name == 'rn-publish'
     runs-on: ubuntu-latest
     steps:
       - name: Parse release note comment and push to Skyline
