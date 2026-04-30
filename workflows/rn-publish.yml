@@ -21,8 +21,12 @@ jobs:
           COLLABORATION_PASSWORD: ${{ secrets.COLLABORATION_PASSWORD }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
+          SOLUTION_NAME: ${{ vars.SOLUTION_NAME }}
         run: |
           set -euo pipefail
+
+          # Use configured solution name, or derive from repo name by stripping SLC-X- prefix
+          SOLUTION=${SOLUTION_NAME:-$(echo "$REPO" | cut -d'/' -f2 | sed 's/^[A-Z]*-[A-Z]-//')}
 
           PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title --jq '.title')
 
@@ -88,7 +92,8 @@ jobs:
             --arg desc "$DESCRIPTION" \
             --arg type "$TYPE" \
             --argjson breaking "$BREAKING_JSON" \
-            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}')
+            --arg solution "$SOLUTION" \
+            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, Application: "Solutions", Functionality: [$solution]}')
 
           RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
@@ -115,8 +120,9 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          # Remove publish-rn label regardless of outcome
-          gh api "repos/$REPO/issues/$PR_NUMBER/labels/publish-rn" -X DELETE 2>/dev/null || true
+          # Remove workflow labels regardless of outcome
+          gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-publish" -X DELETE 2>/dev/null || true
+          gh api "repos/$REPO/issues/$PR_NUMBER/labels/rn-ready" -X DELETE 2>/dev/null || true
           # Add rn-published label only on success
           if [ "${{ job.status }}" = "success" ]; then
             gh api "repos/$REPO/issues/$PR_NUMBER/labels" -f labels[]="rn-published" 2>/dev/null || true
