@@ -29,7 +29,6 @@ safe-outputs:
   close-issue:
     target: "*"
     max: 1
-    state-reason: "completed"
   create-pull-request:
     title-prefix: "[catalog-doc] "
     labels: [documentation]

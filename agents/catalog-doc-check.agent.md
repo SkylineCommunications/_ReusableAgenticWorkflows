@@ -130,5 +130,5 @@ The section header for this policy's results block must read:
 
 **Step 3 — If all checks pass:**
 
-- If an existing issue was found: **close that issue** by passing its `issue_number`, with state reason `completed`.
+- If an existing issue was found: **close that issue** by passing its `issue_number` with `state_reason: completed`.
 - If no existing issue was found: call `noop` with message "Catalog documentation meets all standards — no issues found."
