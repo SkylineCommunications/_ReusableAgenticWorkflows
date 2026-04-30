@@ -26,7 +26,12 @@ jobs:
           set -euo pipefail
 
           # Use configured solution name, or derive from repo name by stripping SLC-X- prefix
-          SOLUTION=${SOLUTION_NAME:-$(echo "$REPO" | cut -d'/' -f2 | sed 's/^[A-Z]*-[A-Z]-//')}
+          # If SOLUTION_NAME is explicitly empty, Functionality and Application are omitted from the payload
+          if [ -n "$SOLUTION_NAME" ]; then
+            SOLUTION="$SOLUTION_NAME"
+          else
+            SOLUTION=$(echo "$REPO" | cut -d'/' -f2 | sed 's/^[A-Z]*-[A-Z]-//')
+          fi
 
           PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title --jq '.title')
 
@@ -86,6 +91,7 @@ jobs:
           fi
 
           if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
+          if [ -n "$SOLUTION_NAME" ]; then HAS_SOLUTION=true; else HAS_SOLUTION=false; fi
 
           PAYLOAD=$(jq -n \
             --arg title "$PR_TITLE" \
@@ -93,7 +99,9 @@ jobs:
             --arg type "$TYPE" \
             --argjson breaking "$BREAKING_JSON" \
             --arg solution "$SOLUTION" \
-            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, Application: "Solutions", Functionality: [$solution]}')
+            --argjson has_solution "$HAS_SOLUTION" \
+            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}
+             + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
 
           RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
