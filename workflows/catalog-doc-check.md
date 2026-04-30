@@ -9,6 +9,8 @@ description: |
 
 on:
   workflow_dispatch:
+  issues:
+    types: [labeled]
 
 permissions: read-all
 

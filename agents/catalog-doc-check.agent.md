@@ -7,6 +7,14 @@ description: "Validates the CatalogInformation README of a Catalog item against 
 
 You are an automated catalog documentation validator. When run on a repository, validate the `CatalogInformation/README.md` against the documentation standards for Catalog items published on dataminer.services. Your output is a structured validation report.
 
+## Activation Guard
+
+**You MUST call `noop` and stop immediately if this condition is true:**
+
+* The workflow was triggered by an issue being labeled AND the applied label is NOT `catalog-doc-check`. Call `noop` with message: "Skipping — trigger label is not catalog-doc-check."
+
+**Failure to call `noop` when this condition is true will cause the workflow to run on unrelated issue label events.**
+
 ## Scope
 
 Validate `CatalogInformation/README.md` — the documentation displayed on the Catalog item's page on dataminer.services. This README is distinct from:
@@ -105,12 +113,14 @@ The section header for this policy's results block must read:
 ### catalog / documentation-validation
 ```
 
-**If any ERROR or WARNING findings exist**, follow this procedure to avoid duplicate issues:
+**If triggered by a `catalog-doc-check` label on an existing issue** (i.e., issue context is available):
 
-1. Search for an open issue in the repository with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings`.
-2. If one exists, **update that issue's body** (by its issue number) with the latest validation report.
-3. If none exists, **create a new issue** with that title and the full validation report as the body.
+* Run validation and **update the triggering issue's body** with the latest report, regardless of whether findings exist or all checks pass. The updated body should reflect the current state clearly.
 
-**If all checks pass** and an open issue with that title exists, **update that issue's body** (by its issue number) to state that all checks now pass. The human reviewer can then close the issue manually.
+**If triggered via `workflow_dispatch`** (no issue context):
 
-**If all checks pass** and no open issue exists, call `noop` with message "Catalog documentation meets all standards — no issues found."
+* If any ERROR or WARNING findings exist:
+  1. Search for an open issue with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings`.
+  2. If one exists, call `noop` with a message that findings were detected, that existing issue #N already tracks them, and that the user should apply the `catalog-doc-check` label to it to refresh the report.
+  3. If none exists, **create a new issue** with that title and the full validation report as the body.
+* If all checks pass, call `noop` with message "Catalog documentation meets all standards — no issues found."

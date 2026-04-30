@@ -71,9 +71,9 @@ The agent reads `CatalogInformation/README.md` and runs 8 checks in order:
 | Situation | Action |
 |-----------|--------|
 | Findings exist, no open issue yet | Opens a new issue titled `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` |
-| Findings exist, open issue already present | Updates the existing issue body with the latest results — no duplicate created |
-| All checks pass, open issue exists | Updates the existing issue body to reflect compliance — close it manually when ready |
-| All checks pass, no open issue | No action taken — reports compliance |
+| Findings exist, open issue already present | No new issue — reports that existing issue #N already tracks the findings; apply the `catalog-doc-check` label to it to refresh |
+| All checks pass (no existing issue) | No action taken — reports compliance |
+| `catalog-doc-check` label applied to the findings issue | Re-runs validation and updates the issue body in place with the latest report |
 
 ## What it reads
 
@@ -81,10 +81,12 @@ The agent reads `CatalogInformation/README.md` and runs 8 checks in order:
 
 ## What it creates or updates
 
-- **1 issue** when violations are found, containing the full validation report
+- **1 issue** when violations are found (first run via `workflow_dispatch`), containing the full validation report
+- **Updates that issue** when the `catalog-doc-check` label is applied to it — refreshes the body with the latest validation results
 
 ## Human in the Loop
 
-- **Fix and re-run** — after addressing the findings in the issue, close it and re-run the workflow to confirm compliance.
+- **Fix and refresh** — after addressing findings, apply the `catalog-doc-check` label to the open issue to re-run validation and update the report in place.
+- **Close when clean** — once the updated report shows no violations, close the issue manually.
 - **N/A checks** — some sections (Use Cases, Prerequisites, Technical Reference, Visuals) are optional. The agent marks them N/A when they are not present and the item does not require them.
-- **False positives** — if the agent flags something incorrectly, edit the issue comment to note the exception before closing it.
+- **False positives** — if the agent flags something incorrectly, edit the issue body to note the exception before closing it.
