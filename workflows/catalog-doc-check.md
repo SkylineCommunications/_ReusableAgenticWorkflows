@@ -1,11 +1,10 @@
 ---
 description: |
-  Manually validates the CatalogInformation README of a Catalog item against
-  documentation best practices for items published on dataminer.services.
-  Checks for required sections (About, Key Features), content quality, visuals,
-  and forbidden content (support contacts). Opens a single issue summarising
-  all findings when violations are found, or reports compliance when the
-  documentation meets all standards.
+  Validates the CatalogInformation README of a Catalog item against documentation
+  best practices for items published on dataminer.services. Checks for required
+  sections (About, Key Features), content quality, visuals, and forbidden content
+  (support contacts). Opens an issue with findings, updates it on re-runs, closes
+  it when all checks pass, and optionally creates a PR with proposed fixes.
 
 on:
   workflow_dispatch:
@@ -16,10 +15,24 @@ permissions: read-all
 
 network: defaults
 
+checkout:
+  sparse-checkout: |
+    CatalogInformation/
+
 safe-outputs:
   create-issue:
     max: 1
   update-issue:
+    target: "*"
+    body:
+    max: 1
+  close-issue:
+    target: "*"
+    max: 1
+    state-reason: "completed"
+  create-pull-request:
+    title-prefix: "[catalog-doc] "
+    labels: [documentation]
     max: 1
   noop:
     max: 1

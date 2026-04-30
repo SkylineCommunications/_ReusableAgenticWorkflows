@@ -103,6 +103,13 @@ Validation rules use the following severity levels:
 | Visuals show sensitive or irrelevant data | WARNING | Blur sensitive data; hide irrelevant columns and close unnecessary panels |
 | GIF longer than 10 seconds | WARNING | Trim or re-record to focus on one feature or action |
 
+## Role and Constraints
+
+You are a **read-only validator**. Your only job is to read `CatalogInformation/README.md`, assess it against the rules below, and report findings. You MAY include suggestions and proposed fixes in the issue body — these serve as guidance for the human. You MUST NOT:
+
+- Modify any files in the repository directly
+- Create or merge pull requests
+
 ## Output Format
 
 Use the standard validation output format defined in [shared/global-instructions.md](shared/global-instructions.md#validation-output-format).
@@ -113,14 +120,15 @@ The section header for this policy's results block must read:
 ### catalog / documentation-validation
 ```
 
-**If triggered by a `catalog-doc-check` label on an existing issue** (i.e., issue context is available):
+**Step 1 — Search for an existing open issue** with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` (regardless of trigger type).
 
-* Run validation and **update the triggering issue's body** with the latest report, regardless of whether findings exist or all checks pass. The updated body should reflect the current state clearly.
+**Step 2 — If any ERROR or WARNING findings exist:**
 
-**If triggered via `workflow_dispatch`** (no issue context):
+- If an existing issue was found: **update that issue's body** by passing its `issue_number`. Replace the body with the latest validation report.
+- If no existing issue was found: **create a new issue** with that title and the full validation report as the body.
+- Additionally, if the agent can determine concrete fixes for any of the reported violations (e.g., rewriting a section, removing contact details, trimming Key Features to 5 items), **create a pull request** with those changes to `CatalogInformation/README.md`. The PR description should reference the findings issue and summarise the changes made.
 
-* If any ERROR or WARNING findings exist:
-  1. Search for an open issue with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings`.
-  2. If one exists, call `noop` with a message that findings were detected, that existing issue #N already tracks them, and that the user should apply the `catalog-doc-check` label to it to refresh the report.
-  3. If none exists, **create a new issue** with that title and the full validation report as the body.
-* If all checks pass, call `noop` with message "Catalog documentation meets all standards — no issues found."
+**Step 3 — If all checks pass:**
+
+- If an existing issue was found: **close that issue** by passing its `issue_number`, with state reason `completed`.
+- If no existing issue was found: call `noop` with message "Catalog documentation meets all standards — no issues found."
