@@ -9,7 +9,11 @@ description: |
 
 on:
   pull_request_target:
-    types: [closed, labeled]
+    types: [closed]
+  label_command:
+    name: rn-requested
+    events: [pull_request]
+    remove_label: false
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
