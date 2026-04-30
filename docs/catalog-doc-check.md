@@ -71,9 +71,8 @@ The agent reads `CatalogInformation/README.md` and runs 8 checks in order:
 | Situation | Action |
 |-----------|--------|
 | Findings exist, no open issue yet | Opens a new issue titled `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` |
-| Findings exist, open issue already present | Updates the existing issue body with the latest results — no duplicate created |
-| All checks pass, open issue exists | Updates the existing issue body to reflect compliance — close it manually when ready |
-| All checks pass, no open issue | No action taken — reports compliance |
+| Findings exist, open issue already present | No new issue created — reports that existing issue #N already tracks the findings; close it and re-run to refresh |
+| All checks pass | No action taken — reports compliance |
 
 ## What it reads
 

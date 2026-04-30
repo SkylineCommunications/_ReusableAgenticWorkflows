@@ -108,9 +108,7 @@ The section header for this policy's results block must read:
 **If any ERROR or WARNING findings exist**, follow this procedure to avoid duplicate issues:
 
 1. Search for an open issue in the repository with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings`.
-2. If one exists, **update its body** with the latest validation report.
+2. If one exists, call `noop` with a message stating that findings were detected but an existing open issue already tracks them — include the issue number — and that the user should close it and re-run to generate a fresh report.
 3. If none exists, **create a new issue** with that title and the full validation report as the body.
 
-**If all checks pass** and an open issue with that title exists, update its body to state that all checks now pass. The human reviewer can then close the issue manually.
-
-**If all checks pass** and no open issue exists, call `noop` with message "Catalog documentation meets all standards — no issues found."
+**If all checks pass**, call `noop` with message "Catalog documentation meets all standards — no issues found."
