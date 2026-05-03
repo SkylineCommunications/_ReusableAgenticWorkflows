@@ -10,6 +10,8 @@ description: |
 on:
   pull_request_target:
     types: [closed, labeled]
+    paths-ignore:
+      - '.github/workflows/**'
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
@@ -18,16 +20,18 @@ if: github.event.action != 'labeled' || github.event.label.name == 'rn-request'
 permissions:
   contents: read
   issues: read
-  pull-requests: write
+  pull-requests: read
 
 network: defaults
 
 safe-outputs:
   add-comment:
-    max: 1
+    max: 5
   add-labels:
+    allowed: [rn-proposal]
     max: 1
   remove-labels:
+    allowed: [rn-request]
     max: 1
   noop:
     max: 1

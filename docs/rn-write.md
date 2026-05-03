@@ -6,9 +6,10 @@
 
 The [RN Write workflow](../workflows/rn-write.md?plain=1)
 triggers when a pull request is closed. When the PR was merged it reads the
-diff and any linked issues, then posts a single plain-language release note
-entry as a comment — written for a changelog audience (product owners,
-technical writers, end-users) rather than for PR reviewers.
+diff and any linked issues, then posts one or more plain-language release note
+comments — written for a changelog audience (product owners, technical writers,
+end-users) rather than for PR reviewers. A separate comment is posted for each
+separate feature, fix, or behavior the PR delivers — grouping happens downstream in the release note document.
 
 ## Installation
 
@@ -23,6 +24,15 @@ gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/rn-write
 This walks you through adding the workflow to your repository.
 
 ## Configuration
+
+### Required Labels
+
+The workflow adds and removes labels on PRs. These labels must exist in the repository before the workflow runs:
+
+```bash
+gh label create rn-proposal --color 0075ca --description "Release note draft ready for review"
+gh label create rn-request  --color e4e669 --description "Request (re)generation of a release note"
+```
 
 ### Secrets
 
@@ -72,16 +82,20 @@ multi-topic changes use a short bullet list.
 
 ### Output
 
-The release note is posted as a single comment on the merged PR. The `## 📋 Release Note` heading is what downstream workflows use to identify and extract the comment:
+For a single-topic PR, one comment is posted. When the PR delivers multiple separate features, fixes, or behaviors — even small ones — the agent posts one comment per change (up to five). Grouping happens downstream in the release note document. The publish workflow identifies all matching comments and processes them individually.
+
+Each comment uses this structure:
 
 ```markdown
 ## 📋 Release Note
 
-{release note text}
+**Type:** {type}
+**Breaking Change:** {true or false}
 
----
-🤖 This release note was generated automatically.
+{release note text}
 ```
+
+After publishing, the publish workflow edits each comment in-place to append the published URL and an invisible idempotency marker (`<!-- rn-published: {id} -->`). Re-triggering `rn-publish` updates the existing entries rather than creating duplicates.
 
 ## What it reads
 
@@ -90,8 +104,8 @@ The release note is posted as a single comment on the merged PR. The `## 📋 Re
 
 ## What it creates or updates
 
-- **1 comment** on the PR with the plain-language release note entry
-- Adds the `rn-proposal` label to signal the draft is ready for review
+- **1–5 comments** on the PR (one per distinct release note entry)
+- Adds the `rn-proposal` label to signal the drafts are ready for review
 - Removes the `rn-request` label
 
 ## Publishing to an external platform
@@ -103,7 +117,7 @@ The `## 📋 Release Note` heading is what the publish workflow uses to locate t
 1. **PR is merged** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, applies the `rn-proposal` label, and removes the `rn-request` label.
 2. **Human reviews** — open the closed PR, read the generated comment. If corrections are needed, edit the comment directly on GitHub. The publish step reads whatever text is in the comment at the moment the label is applied.
 3. **Human approves** — add the `rn-publish` label to the PR.
-4. **Publish workflow runs** — a GitHub Action triggers on `pull_request: labeled` where `label.name == 'rn-publish'`. It searches the PR's comments for the most recent one containing `## 📋 Release Note`, extracts the body, and pushes it to the release note platform.
+4. **Publish workflow runs** — a GitHub Action triggers on `pull_request: labeled` where `label.name == 'rn-publish'`. It finds **all** PR comments containing `## 📋 Release Note` and processes each one: validates the metadata, pushes to the release note platform, and edits the comment in-place to append the published URL and an idempotency marker. Re-triggering `rn-publish` updates existing entries rather than creating duplicates.
 5. **Cleanup** — the publish workflow removes the `rn-proposal` and `rn-publish` labels and applies `rn-published` to the PR, marking it as done.
 
 ## Human in the Loop
