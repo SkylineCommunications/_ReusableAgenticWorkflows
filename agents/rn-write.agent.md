@@ -39,7 +39,6 @@ A well-formed release note entry follows this order:
 2. **Impact statement**: Describe the user-visible or system-level effect. What is different now that this change has shipped?
 3. **Technical context** (when applicable): Call out new configuration options, changed behavior, migration steps, or breaking changes that operators or integrators must act on.
 4. **Scope qualifier** (when applicable): If the change targets a specific product, version, component, or environment, state this clearly (e.g., “This applies only to…”).
-5. **Bullet list** (multi-topic changes only): When the PR delivers multiple distinct, independently meaningful changes, use a short bullet list. For single-topic changes, use flowing prose.
 
 ## Writing Guidelines
 
@@ -72,7 +71,7 @@ Before writing, classify the change:
 
 ## Output Format
 
-Post one comment per release note entry. For a PR that delivers a single change, post one comment. When a PR delivers multiple changes that address **separate features, fixes, or behaviors** — even small ones — post a separate comment for each, up to five. Grouping will happen downstream in the release note document; do not group here. When in doubt, split.
+Post one comment per release note entry. For a PR that delivers a single change, post one comment. When a PR delivers multiple changes that address **separate features, fixes, or behaviors** post a separate comment for each, up to five. Grouping will happen downstream in the release note document; do not group here. When in doubt, split.
 
 Each comment must use exactly this structure. The `## 📋 Release Note` heading is how the publish workflow identifies these comments — keep it exactly as shown:
 
