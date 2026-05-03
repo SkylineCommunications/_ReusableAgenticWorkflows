@@ -47,128 +47,151 @@ jobs:
             exit 1
           fi
 
-          # Find the RN draft comment by marker
-          RN_COMMENT=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-            --jq '[.[] | select(.body | test("## 📋 Release Note"))] | last | .body')
+          # Fetch all release note draft comments (id + body)
+          RN_COMMENTS_JSON=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq '[.[] | select(.body | test("## 📋 Release Note")) | {id: .id, body: .body}]')
+          RN_COUNT=$(printf '%s' "$RN_COMMENTS_JSON" | jq 'length')
 
-          if [ -z "$RN_COMMENT" ] || [ "$RN_COMMENT" = "null" ]; then
+          if [ "$RN_COUNT" -eq 0 ]; then
             gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
               -f body="❌ No release note draft found. Run the summarizer first (it triggers automatically on PR merge)."
             exit 1
           fi
 
-          TYPE=$(printf '%s\n' "$RN_COMMENT" \
-            | sed -n 's/^\*\*Type:\*\*[[:space:]]*//p' \
-            | head -n 1 | xargs)
-          BREAKING=$(printf '%s\n' "$RN_COMMENT" \
-            | sed -n 's/^\*\*Breaking Change:\*\*[[:space:]]*//p' \
-            | head -n 1 | xargs)
-
-          if [ -z "$TYPE" ]; then
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Could not find \`**Type:**\` in the release note draft. Please edit the comment and set it to one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
-            exit 1
-          fi
-          if ! printf '%s' "$TYPE" | grep -qE "^(New Feature/Enhancement|Bug Fix|Release Notes)$"; then
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Invalid Type \`$TYPE\` in the release note draft. Must be one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
-            exit 1
-          fi
-
-          if [ -z "$BREAKING" ]; then
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Could not find \`**Breaking Change:**\` in the release note draft. Please edit the comment and set it to \`true\` or \`false\`."
-            exit 1
-          fi
-          if [ "$BREAKING" != "true" ] && [ "$BREAKING" != "false" ]; then
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Invalid Breaking Change value \`$BREAKING\` in the release note draft. Must be \`true\` or \`false\`."
-            exit 1
-          fi
-
-          DESCRIPTION=$(printf '%s\n' "$RN_COMMENT" \
-            | awk '
-                /^## .*Release Note/ { in_rn=1; next }
-                !in_rn { next }
-                /^\*\*Type:\*\*/ { next }
-                /^\*\*Breaking/ { next }
-                /^---$/ { next }
-                /^<!--/ { next }
-                /^> / { next }
-                /^[[:space:]]*$/ { next }
-                { print }
-              ' \
-            | head -c 4000)
-
-          if [ -z "$DESCRIPTION" ]; then
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="❌ Could not extract a description from the release note draft."
-            exit 1
-          fi
-
+          # Authenticate with Skyline API once for all entries
           TOKEN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/Token" \
             --data-urlencode "grant_type=password" \
             --data-urlencode "username=${COLLABORATION_USERNAME}" \
             --data-urlencode "password=${COLLABORATION_PASSWORD}")
-          TOKEN_HTTP=$(echo "$TOKEN_RESPONSE" | tail -1)
-          TOKEN_BODY=$(echo "$TOKEN_RESPONSE" | head -n -1)
-          ACCESS_TOKEN=$(echo "$TOKEN_BODY" | jq -r '.access_token')
+          TOKEN_HTTP=$(printf '%s' "$TOKEN_RESPONSE" | tail -1)
+          TOKEN_BODY=$(printf '%s' "$TOKEN_RESPONSE" | head -n -1)
+          ACCESS_TOKEN=$(printf '%s' "$TOKEN_BODY" | jq -r '.access_token')
 
           if [ "$TOKEN_HTTP" != "200" ] || [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-            ERROR_MSG=$(echo "$TOKEN_BODY" | jq -r '.error_description // .error // .Message // .' 2>/dev/null || echo "$TOKEN_BODY")
+            ERROR_MSG=$(printf '%s' "$TOKEN_BODY" | jq -r '.error_description // .error // .Message // .' 2>/dev/null || printf '%s' "$TOKEN_BODY")
             gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
               -f body="❌ Failed to authenticate with Skyline API (HTTP $TOKEN_HTTP). Check \`COLLABORATION_USERNAME\` and \`COLLABORATION_PASSWORD\` secrets. Response: \`$ERROR_MSG\`"
             exit 1
           fi
 
-          if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
           if [ -n "$SOLUTION" ]; then HAS_SOLUTION=true; else HAS_SOLUTION=false; fi
 
-          PAYLOAD=$(jq -n \
-            --arg title "$PR_TITLE" \
-            --arg desc "$DESCRIPTION" \
-            --arg type "$TYPE" \
-            --argjson breaking "$BREAKING_JSON" \
-            --arg solution "$SOLUTION" \
-            --argjson has_solution "$HAS_SOLUTION" \
-            '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}
-             + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
+          ERRORS=0
 
-          # Check for a previously published RN — if found, update it instead of creating a duplicate
-          EXISTING_SUCCESS=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-            --jq '[.[] | select(.body | test("collaboration.dataminer.services/releasenotes/"))] | last | .body // ""')
-          EXISTING_RN_ID=$(echo "$EXISTING_SUCCESS" | grep -oE 'releasenotes/[0-9]+' | grep -oE '[0-9]+' || echo "")
+          for i in $(seq 0 $((RN_COUNT - 1))); do
+            COMMENT_ID=$(printf '%s' "$RN_COMMENTS_JSON" | jq -r ".[$i].id")
+            COMMENT_BODY=$(printf '%s' "$RN_COMMENTS_JSON" | jq -r ".[$i].body")
+            ENTRY_NUM=$((i + 1))
 
-          if [ -n "$EXISTING_RN_ID" ]; then
-            PATCH_PAYLOAD=$(echo "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
-            RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
-              -H "Authorization: Bearer $ACCESS_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PATCH_PAYLOAD")
-            RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
-            RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
-            if [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; then
+            TYPE=$(printf '%s\n' "$COMMENT_BODY" \
+              | sed -n 's/^\*\*Type:\*\*[[:space:]]*//p' \
+              | head -n 1 | xargs)
+            BREAKING=$(printf '%s\n' "$COMMENT_BODY" \
+              | sed -n 's/^\*\*Breaking Change:\*\*[[:space:]]*//p' \
+              | head -n 1 | xargs)
+
+            if [ -z "$TYPE" ]; then
               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-                -f body="❌ Skyline API call failed while updating release note $EXISTING_RN_ID (HTTP $RN_HTTP): $(echo "$RESPONSE" | jq -r '.Message // .')"
-              exit 1
+                -f body="❌ Release note #${ENTRY_NUM}: could not find \`**Type:**\`. Please edit the comment and set it to one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
+              ERRORS=$((ERRORS + 1))
+              continue
             fi
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="✅ Release note updated on DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$EXISTING_RN_ID"
-          else
-            RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
-              -H "Authorization: Bearer $ACCESS_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD")
-            RN_HTTP=$(echo "$RN_RESPONSE" | tail -1)
-            RESPONSE=$(echo "$RN_RESPONSE" | head -n -1)
-            RN_ID=$(echo "$RESPONSE" | jq -r '.ID // empty')
-            if { [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; } || [ -z "$RN_ID" ]; then
+            if ! printf '%s' "$TYPE" | grep -qE "^(New Feature/Enhancement|Bug Fix|Release Notes)$"; then
               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-                -f body="❌ Skyline API call failed (HTTP $RN_HTTP): $(echo "$RESPONSE" | jq -r '.Message // .')"
-              exit 1
+                -f body="❌ Release note #${ENTRY_NUM}: invalid Type \`$TYPE\`. Must be one of: \`New Feature/Enhancement\`, \`Bug Fix\`, \`Release Notes\`."
+              ERRORS=$((ERRORS + 1))
+              continue
             fi
-            gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-              -f body="✅ Release note pushed to DataMiner Collaboration: https://collaboration.dataminer.services/releasenotes/$RN_ID"
+
+            if [ -z "$BREAKING" ]; then
+              gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                -f body="❌ Release note #${ENTRY_NUM}: could not find \`**Breaking Change:**\`. Please edit the comment and set it to \`true\` or \`false\`."
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+            if [ "$BREAKING" != "true" ] && [ "$BREAKING" != "false" ]; then
+              gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                -f body="❌ Release note #${ENTRY_NUM}: invalid Breaking Change value \`$BREAKING\`. Must be \`true\` or \`false\`."
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            DESCRIPTION=$(printf '%s\n' "$COMMENT_BODY" \
+              | awk '
+                  /^## .*Release Note/ { in_rn=1; next }
+                  !in_rn { next }
+                  /^\*\*Type:\*\*/ { next }
+                  /^\*\*Breaking/ { next }
+                  /^---$/ { next }
+                  /^<!--/ { next }
+                  /^> / { next }
+                  /^✅/ { next }
+                  /^[[:space:]]*$/ { next }
+                  { print }
+                ' \
+              | head -c 4000)
+
+            if [ -z "$DESCRIPTION" ]; then
+              gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                -f body="❌ Release note #${ENTRY_NUM}: could not extract a description."
+              ERRORS=$((ERRORS + 1))
+              continue
+            fi
+
+            if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
+
+            PAYLOAD=$(jq -n \
+              --arg title "$PR_TITLE" \
+              --arg desc "$DESCRIPTION" \
+              --arg type "$TYPE" \
+              --argjson breaking "$BREAKING_JSON" \
+              --arg solution "$SOLUTION" \
+              --argjson has_solution "$HAS_SOLUTION" \
+              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}
+               + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
+
+            # Check for idempotency marker — if already published, update instead of creating a new entry
+            EXISTING_RN_ID=$(printf '%s' "$COMMENT_BODY" \
+              | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 || true)
+
+            if [ -n "$EXISTING_RN_ID" ]; then
+              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
+              RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$PATCH_PAYLOAD")
+              RN_HTTP=$(printf '%s' "$RN_RESPONSE" | tail -1)
+              RESPONSE=$(printf '%s' "$RN_RESPONSE" | head -n -1)
+              if [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; then
+                gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                  -f body="❌ Release note #${ENTRY_NUM}: Skyline API update failed (HTTP $RN_HTTP): $(printf '%s' "$RESPONSE" | jq -r '.Message // .')"
+                ERRORS=$((ERRORS + 1))
+              fi
+              # Comment already contains the published URL — no edit needed
+            else
+              RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://api.skyline.be/api/ReleaseNotes" \
+                -H "Authorization: Bearer $ACCESS_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "$PAYLOAD")
+              RN_HTTP=$(printf '%s' "$RN_RESPONSE" | tail -1)
+              RESPONSE=$(printf '%s' "$RN_RESPONSE" | head -n -1)
+              RN_ID=$(printf '%s' "$RESPONSE" | jq -r '.ID // empty')
+              if { [ "$RN_HTTP" != "200" ] && [ "$RN_HTTP" != "201" ]; } || [ -z "$RN_ID" ]; then
+                gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                  -f body="❌ Release note #${ENTRY_NUM}: Skyline API call failed (HTTP $RN_HTTP): $(printf '%s' "$RESPONSE" | jq -r '.Message // .')"
+                ERRORS=$((ERRORS + 1))
+                continue
+              fi
+
+              # Append the published URL and idempotency marker to the original RN comment in-place
+              NEW_BODY=$(printf '%s\n\n✅ Published: https://collaboration.dataminer.services/releasenotes/%s\n<!-- rn-published: %s -->' \
+                "$COMMENT_BODY" "$RN_ID" "$RN_ID")
+              gh api "repos/$REPO/issues/comments/$COMMENT_ID" -X PATCH -f body="$NEW_BODY"
+            fi
+          done
+
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
           fi
 
       - name: Update labels
