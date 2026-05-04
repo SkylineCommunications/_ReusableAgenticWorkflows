@@ -83,6 +83,13 @@ jobs:
             COMMENT_BODY=$(printf '%s' "$RN_COMMENTS_JSON" | jq -r ".[$i].body")
             ENTRY_NUM=$((i + 1))
 
+            TITLE=$(printf '%s\n' "$COMMENT_BODY" \
+              | sed -n 's/^\*\*Title:\*\*[[:space:]]*//p' \
+              | head -n 1 | xargs)
+            # Fall back to PR title for comments that predate the Title field
+            if [ -z "$TITLE" ]; then
+              TITLE="$PR_TITLE"
+            fi
             TYPE=$(printf '%s\n' "$COMMENT_BODY" \
               | sed -n 's/^\*\*Type:\*\*[[:space:]]*//p' \
               | head -n 1 | xargs)
@@ -120,6 +127,7 @@ jobs:
               | awk '
                   /^## .*Release Note/ { in_rn=1; next }
                   !in_rn { next }
+                  /^\*\*Title:\*\*/ { next }
                   /^\*\*Type:\*\*/ { next }
                   /^\*\*Breaking/ { next }
                   /^---$/ { next }
@@ -141,7 +149,7 @@ jobs:
             if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
 
             PAYLOAD=$(jq -n \
-              --arg title "$PR_TITLE" \
+              --arg title "$TITLE" \
               --arg desc "$DESCRIPTION" \
               --arg type "$TYPE" \
               --argjson breaking "$BREAKING_JSON" \

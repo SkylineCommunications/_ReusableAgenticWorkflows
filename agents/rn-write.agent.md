@@ -62,6 +62,13 @@ A well-formed release note entry follows this order:
 
 Before writing, classify the change:
 
+**Title** — a short, standalone changelog headline (5–10 words). Write it as a noun phrase or imperative that completes the thought "This release includes…". It must be specific enough to identify this entry in a multi-entry changelog without reading the description. Do **not** restate the PR title verbatim — derive a title that reflects the actual delivered value.
+
+Examples of good titles:
+- `Support for multiple release notes per PR`
+- `Fixed duplicate polling on reconnect`
+- `New alarm threshold configuration option`
+
 **Type** — pick exactly one:
 - `New Feature/Enhancement` — new functionality or improvements to existing behavior
 - `Bug Fix` — corrects incorrect or unintended behavior
@@ -78,6 +85,7 @@ Each comment must use exactly this structure. The `## 📋 Release Note` heading
 ```markdown
 ## 📋 Release Note
 
+**Title:** {changelog title}
 **Type:** {type}
 **Breaking Change:** {true or false}
 
