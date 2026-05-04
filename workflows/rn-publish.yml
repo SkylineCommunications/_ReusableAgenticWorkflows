@@ -11,7 +11,9 @@ permissions:
 
 jobs:
   push-release-note:
-    if: github.event.label.name == 'rn-publish'
+    if: |
+      github.event.label.name == 'rn-publish' &&
+      github.event.pull_request.head.repo.owner.login == github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - name: Parse release note comment and publish to collaboration
