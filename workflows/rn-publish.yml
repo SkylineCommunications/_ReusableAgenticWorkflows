@@ -87,17 +87,17 @@ jobs:
 
             TITLE=$(printf '%s\n' "$COMMENT_BODY" \
               | sed -n 's/^\*\*Title:\*\*[[:space:]]*//p' \
-              | head -n 1 | xargs)
+              | head -n 1 | tr -d '\r' | xargs)
             # Fall back to PR title for comments that predate the Title field
             if [ -z "$TITLE" ]; then
               TITLE="$PR_TITLE"
             fi
             TYPE=$(printf '%s\n' "$COMMENT_BODY" \
               | sed -n 's/^\*\*Type:\*\*[[:space:]]*//p' \
-              | head -n 1 | xargs)
+              | head -n 1 | tr -d '\r' | xargs)
             BREAKING=$(printf '%s\n' "$COMMENT_BODY" \
               | sed -n 's/^\*\*Breaking Change:\*\*[[:space:]]*//p' \
-              | head -n 1 | xargs)
+              | head -n 1 | tr -d '\r' | xargs)
 
             if [ -z "$TYPE" ]; then
               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
@@ -136,8 +136,8 @@ jobs:
                   /^<!--/ { next }
                   /^> / { next }
                   /^✅/ { next }
-                  /^[[:space:]]*$/ { next }
-                  { print }
+                  /^[[:space:]]*$/ { if (!started) next; print; next }
+                  { started=1; print }
                 ' \
               | head -c 4000)
 
@@ -162,7 +162,7 @@ jobs:
 
             # Check for idempotency marker — if already published, update instead of creating a new entry
             EXISTING_RN_ID=$(printf '%s' "$COMMENT_BODY" \
-              | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 || true)
+              | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 | tr -d '\r' || true)
 
             if [ -n "$EXISTING_RN_ID" ]; then
               PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
