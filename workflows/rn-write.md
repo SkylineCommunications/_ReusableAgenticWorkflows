@@ -15,7 +15,9 @@ on:
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
-if: github.event.action != 'labeled' || github.event.label.name == 'rn-request'
+if: 
+    github.event.action != 'labeled' || github.event.label.name == 'rn-request' &&
+    github.event.pull_request.head.repo.owner.login == github.repository_owner
 
 permissions:
   contents: read
