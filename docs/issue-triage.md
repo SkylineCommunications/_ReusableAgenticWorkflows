@@ -31,9 +31,11 @@ This walks you through adding the workflow to your repository.
 
 ### Permissions
 
-| Permission | Level   | Purpose                                  |
-|------------|---------|------------------------------------------|
-| `issues`   | `write` | Add labels and post comments on issues   |
+| Permission | Level      | Purpose                                 |
+|------------|------------|-----------------------------------------|
+| `read-all` | (all read) | Read repository contents and issues     |
+
+The `safe-outputs: add-labels` and `add-comment` declarations authorize the engine to label issues and post comments — no explicit write permission is required in the permissions block.
 
 ### Labels
 
@@ -55,8 +57,9 @@ exist in your repository before running the agent:
 
 ### Activation
 
-The agent runs on demand (or on a schedule) and processes **all currently open
-issues that have no labels**.
+The agent activates when an issue is **opened** or **reopened**. It can also be
+triggered manually by adding an 👀 eyes reaction to any issue. Each time it runs,
+it processes **all currently open issues that have no labels**.
 
 It skips issues that:
 

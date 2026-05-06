@@ -91,5 +91,3 @@ The agent reads `CatalogInformation/README.md` and runs 8 checks in order:
 - **Review the PR** — if a pull request was created with proposed fixes, review and merge it, then re-run the workflow to confirm the issue is resolved.
 - **N/A checks** — some sections (Use Cases, Prerequisites, Technical Reference, Visuals) are optional. The agent marks them N/A when not present and the item does not require them.
 - **False positives** — if the agent flags something incorrectly, edit the issue body to note the exception before closing it.
-- **N/A checks** — some sections (Use Cases, Prerequisites, Technical Reference, Visuals) are optional. The agent marks them N/A when they are not present and the item does not require them.
-- **False positives** — if the agent flags something incorrectly, edit the issue body to note the exception before closing it.

@@ -7,20 +7,19 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 ## 📂 Available Workflows
 
-### Pull Request Workflows
-
-- [🔍 Dependency PR Review](docs/dependency-pr-review.md) - Review and auto-approve Dependabot version bump PRs after safety validation
-- [🔎 PR Review](docs/pr-review.md) - Automated quality review on pull requests before human review
-- [📋 PR Summarize](docs/pr-summarize.md) - Automated plain-language summary of pull request changes
-
 ### Issue Workflows
 
-- [🏷️ Issue Triage](docs/issue-triage.md) - Classify new issues, detect duplicates, and assess implementation readiness
-- [🤖 Issue Implementation](docs/issue-implement.md) - Analyze `agent-ready` issues and open pull requests with the implementation
+- [🏷️ Issue Triage](docs/issue-triage.md) - Classify new and reopened issues by applying a single label and notifying the author
+- [🔄 Collaboration Sync](docs/collaboration-sync.md) - Sync tasks from the Skyline Collaboration API to GitHub Issues
+
+### Release Note Workflows
+
+- [📋 RN Write](docs/rn-write.md) - Write a plain-language release note entry when a pull request is merged
 
 ### Documentation Workflows
 
 - [📝 Documentation Update Check](docs/doc-update-check.md) - Detect stale documentation after code changes and create issues for updates
+- [📋 Catalog Documentation Check](docs/catalog-doc-check.md) - Validate a Catalog item's README against documentation standards and open issues for any gaps
 
 ## 🔧 Installation
 
@@ -53,12 +52,11 @@ gh extension install github/gh-aw
 
 # Add all workflows non-interactively
 @(
-  'dependency-pr-review',
+  'catalog-doc-check',
+  'collaboration-sync',
   'doc-update-check',
-  'issue-implement',
   'issue-triage',
-  'pr-review',
-  'pr-summarize'
+  'rn-write'
 ) | ForEach-Object {
   gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
 }
@@ -98,24 +96,22 @@ gh aw upgrade                       # Upgrade to the latest gh-aw engine version
 
 # Remove all existing workflows
 @(
-  'dependency-pr-review',
+  'catalog-doc-check',
+  'collaboration-sync',
   'doc-update-check',
-  'issue-implement',
   'issue-triage',
-  'pr-review',
-  'pr-summarize'
+  'rn-write'
 ) | ForEach-Object {
   gh aw remove "$_"
 }
 
 # Re-add all workflows with the latest version
 @(
-  'dependency-pr-review',
+  'catalog-doc-check',
+  'collaboration-sync',
   'doc-update-check',
-  'issue-implement',
   'issue-triage',
-  'pr-review',
-  'pr-summarize'
+  'rn-write'
 ) | ForEach-Object {
   gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
 }

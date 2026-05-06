@@ -48,9 +48,6 @@ The workflow creates issues with the labels `documentation` and `needs-triage`.
 Ensure these labels exist in your repository (they are created by a label-sync
 workflow if you use the hve-core label model).
 
-The `agent-ready` label is also applied to created issues so the
-[Issue Implementation](issue-implement.md) workflow can pick them up automatically.
-
 ## What it does
 
 ### Activation

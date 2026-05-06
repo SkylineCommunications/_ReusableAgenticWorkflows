@@ -46,7 +46,9 @@ gh label create rn-request  --color e4e669 --description "Request (re)generation
 |-----------------|---------|---------------------------------------------------|
 | `contents`      | `read`  | Check out nothing — permission required by engine |
 | `issues`        | `read`  | Read linked issues for context                    |
-| `pull-requests` | `write` | Read PR diff and metadata; post the RN comment    |
+| `pull-requests` | `read`  | Read PR diff and metadata                         |
+
+The `safe-outputs: add-comment`, `add-labels`, and `remove-labels` declarations authorize the engine to post comments and manage labels — no explicit write permission is required in the permissions block.
 
 ## What it does
 
@@ -89,6 +91,7 @@ Each comment uses this structure:
 ```markdown
 ## 📋 Release Note
 
+**Title:** {changelog title}
 **Type:** {type}
 **Breaking Change:** {true or false}
 
