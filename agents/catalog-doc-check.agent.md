@@ -43,7 +43,7 @@ Validation rules use the following severity levels:
 2. **Verify About section** — confirm it is present, concise, and focused on value — not technical detail or generic DataMiner capabilities (e.g., alarming, trending).
 3. **Verify Key Features section** — confirm it is present, contains at most 5 features, and uses specific benefit-oriented language with action verbs.
 4. **Check Use Cases section** — if the item has meaningful real-world scenarios, confirm they are documented with specific, non-hypothetical examples.
-5. **Check Prerequisites section** — if technical requirements exist, confirm they list the minimum DataMiner version using **both** Feature Release and Main Release version numbers.
+5. **Check Prerequisites section** — if technical requirements exist, confirm that users can find the minimum DataMiner version — either stated inline using **both** Feature Release and Main Release version numbers, or via an explicit link to release notes or versioned documentation where those versions are documented.
 6. **Check Technical Reference section** — if detailed documentation exists externally, confirm it is linked rather than duplicated inline.
 7. **Review visuals** — verify included visuals are relevant, high quality, free from sensitive/irrelevant content, and within the 3-visual limit. GIFs must be at most 10 seconds.
 8. **Check for contact/support references** — verify no support contacts or email addresses appear in the documentation body.
@@ -67,7 +67,7 @@ Validation rules use the following severity levels:
 **[WARNING]** When included, SHOULD demonstrate practical real-world scenarios using specific, non-hypothetical examples relevant to the typical user base. May link to a use case on DataMiner Dojo. MUST NOT duplicate Key Features content.
 
 ### Prerequisites Section
-**[WARNING]** When included, SHOULD list the minimum DataMiner version using **both** Feature Release and Main Release version numbers, required licenses, soft-launch options, and component dependencies. MUST NOT include complex installation or configuration steps — link to documentation instead.
+**[WARNING]** When included, SHOULD ensure users can find the minimum DataMiner version requirements — either by stating the version inline using **both** Feature Release and Main Release version numbers, or by providing an explicit link to release notes or versioned documentation where that information is available. SHOULD also list required licenses, soft-launch options, and component dependencies. MUST NOT include complex installation or configuration steps — link to documentation instead.
 
 ### Technical Reference Section
 **[WARNING]** When included, SHOULD link to detailed external documentation using the `documentation_url` manifest field. MUST NOT duplicate content already available elsewhere or document UI details that change frequently.
@@ -87,7 +87,7 @@ Validation rules use the following severity levels:
 | Value-focused About section | Generic DataMiner capabilities (alarming, trending) |
 | Up to 5 specific, benefit-oriented Key Features | More than 5 Key Features |
 | Real-world, non-hypothetical Use Cases | Hypothetical or irrelevant scenarios |
-| DataMiner version (both FR and MR tracks) in Prerequisites | Complex installation steps in Prerequisites |
+| DataMiner version inline (both FR and MR tracks) **or** explicit link to release notes in Prerequisites | Complex installation steps in Prerequisites |
 | Links to external documentation | Duplicating external documentation inline |
 | High-quality visuals (max 3, GIFs max 10 s) | Blurry, sensitive, or irrelevant visuals |
 | DataMiner Support team link | Support contacts or email addresses |
@@ -105,8 +105,8 @@ Validation rules use the following severity levels:
 | About section contains excessive technical detail | WARNING | Move to Technical Reference and link out instead |
 | About section duplicates Key Features content | WARNING | Restructure so About gives the value overview and Key Features lists specifics |
 | Use Cases section missing for non-trivial items | WARNING | Add specific, real-world scenarios showing the item's value |
-| Prerequisites section missing when dependencies exist | WARNING | Add concise prerequisites including DataMiner version (both FR and MR tracks) |
-| Only one DataMiner version track in Prerequisites | WARNING | Add both Feature Release and Main Release version numbers |
+| Prerequisites section missing when dependencies exist | WARNING | Add concise prerequisites — include the DataMiner version (both FR and MR tracks) inline, or link explicitly to release notes where those versions are documented |
+| Version information not discoverable in Prerequisites | WARNING | Either state both Feature Release and Main Release version numbers inline, or add an explicit link to release notes or versioned documentation where users can find them |
 | Technical Reference missing when detailed docs exist | WARNING | Link to external documentation using the `documentation_url` manifest field |
 | Visuals missing | WARNING | Add up to 3 relevant, high-quality images or GIFs illustrating key features |
 | Visuals show sensitive or irrelevant data | WARNING | Blur sensitive data; hide irrelevant columns and close unnecessary panels |
