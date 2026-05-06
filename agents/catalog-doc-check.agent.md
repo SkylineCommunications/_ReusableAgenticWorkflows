@@ -17,7 +17,9 @@ You are an automated catalog documentation validator. When run on a repository, 
 
 ## Scope
 
-Validate `CatalogInformation/README.md` — the documentation displayed on the Catalog item's page on dataminer.services. This README is distinct from:
+Validate the `CatalogInformation/README.md` for this repository's primary Catalog item — the documentation displayed on the Catalog item's page on dataminer.services. This file is **not necessarily at the repository root**; in multi-project solution repositories it is typically located at `{ProjectFolder}/CatalogInformation/README.md` where the project folder name matches the repository name.
+
+This README is distinct from:
 
 * The **repository README** — describes the repository itself for developers and contributors
 * **Project READMEs** — describe individual project components in their subfolders
@@ -30,7 +32,14 @@ Validation rules use the following severity levels:
 
 ## Validation Procedure
 
-1. **Check README existence** — verify `CatalogInformation/README.md` exists. If missing, report `[ERROR]` and stop.
+1. **Discover the target `CatalogInformation/README.md`** — Search the repository tree for all `CatalogInformation/` directories. Then apply the following selection rules in order:
+   1. If a `CatalogInformation/` folder exists at the **repository root**, use `CatalogInformation/README.md`.
+   2. Otherwise, prefer the `CatalogInformation/` folder whose **parent directory name matches the repository name** (e.g., in repo `SLC-S-InfraOps`, prefer `SLC-S-InfraOps/CatalogInformation/`).
+   3. If still ambiguous, inspect the `manifest.yml` files and prefer the one with `type: Standard Solution` over `Custom Solution`, or the one with a populated `documentation_url`.
+   4. If no `CatalogInformation/README.md` is found anywhere, report `[ERROR]` and stop.
+
+   All subsequent validation steps apply to the selected file. If multiple Catalog items are found and none of the above rules disambiguates, validate all of them and produce one report block per item.
+
 2. **Verify About section** — confirm it is present, concise, and focused on value — not technical detail or generic DataMiner capabilities (e.g., alarming, trending).
 3. **Verify Key Features section** — confirm it is present, contains at most 5 features, and uses specific benefit-oriented language with action verbs.
 4. **Check Use Cases section** — if the item has meaningful real-world scenarios, confirm they are documented with specific, non-hypothetical examples.
