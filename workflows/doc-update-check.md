@@ -21,7 +21,7 @@ timeout-minutes: 15
 inlined-imports: true
 
 imports:
-  - SkylineCommunications/_ReusableAgenticWorkflows/agents/doc-update-checker.agent.md
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/doc-update-check.agent.md
 
 checkout:
   sparse-checkout: |

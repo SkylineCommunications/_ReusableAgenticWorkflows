@@ -31,4 +31,4 @@ timeout-minutes: 10
 
 # Issue Triage
 
-{{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/issue-triage.agent.md}}
+{{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/agents/issue-triage.agent.md}}

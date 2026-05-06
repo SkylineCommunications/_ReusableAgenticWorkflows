@@ -24,6 +24,8 @@ permissions:
   issues: read
   pull-requests: read
 
+checkout: false
+
 network: defaults
 
 safe-outputs:
@@ -49,4 +51,4 @@ timeout-minutes: 10
 
 # Agentic Release Notes Writer
 
-{{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}
+{{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}

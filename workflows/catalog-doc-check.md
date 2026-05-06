@@ -47,4 +47,4 @@ timeout-minutes: 10
 
 # Catalog Documentation Checker
 
-{{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/catalog-doc-check.agent.md}}
+{{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/agents/catalog-doc-check.agent.md}}
