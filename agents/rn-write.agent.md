@@ -56,6 +56,26 @@ A well-formed release note entry follows this order:
 * Prefer active constructions and concrete language over passive and vague phrasing.
 * Do not evaluate quality, suggest improvements, or comment on code style — describe only what was delivered.
 
+### Body Formatting
+
+Use formatting within the release note body to aid scannability — but only where it genuinely adds clarity:
+
+* **Bold the names of scripts, components, settings, or features** when first mentioned (e.g., **Asset Manager - ImportExport - Asset - Json**). This helps readers quickly identify what is relevant to them.
+* **Use a bullet list when enumerating two or more distinct named items** (new scripts, new tabs, renamed fields, new configuration options). Each bullet should state the item name in bold, followed by a short description.
+* **Use prose for narrative context** — the opening statement, impact description, and migration guidance should remain in flowing sentences, not bullets.
+* **Do not over-format single-item entries.** If only one item is being named, keep it in the prose flow rather than creating a one-item bullet list.
+
+**Example — enumeration + narrative prose:**
+
+```markdown
+Two new Automation scripts have been added to support importing and exporting assets and asset classes in JSON format:
+
+- **Asset Manager - ImportExport - Asset - Json**: Import and export assets using JSON files.
+- **Asset Manager - ImportExport - AssetClass - Json**: Import and export asset classes using JSON files.
+
+These scripts complement the existing Excel-based import/export and provide a machine-readable alternative for integration scenarios.
+```
+
 ## Content to Include and Avoid
 
 | Include | Avoid |
