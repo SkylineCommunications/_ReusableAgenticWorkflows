@@ -69,9 +69,11 @@ Use the source order **A → B → C** to determine the final project type. Pref
 
 ### 1.3 — Gather Project Details
 
-For each project, collect:
+For each project, collect the **generic details** (1.3.1) that apply to every project type, followed by the **type-specific details** (1.3.2) that vary per project type.
 
-1. **Summary** — Read source files to understand what the project does functionally. Aim for 2–4 sentences describing the purpose. Avoid method-level detail.
+#### 1.3.1 — Generic Details (all types)
+
+1. **Summary** — Read source files to understand what the project does functionally. Write 2–6 sentences describing the purpose, with **key terms bold**. Avoid method-level detail.
 
 1. **T-shirt Size** — Estimate the relative complexity of the project based on the number of source files and lines of code (XS, S, M, L, XL).
 
@@ -85,40 +87,308 @@ For each project, collect:
 
 1. **Catalog Reference** — Only applicable if the project generates a deployable DataMiner package (i.e. has `<GenerateDataMinerPackage>True</GenerateDataMinerPackage>`). If so, check if the project has a `CatalogInformation/` folder containing a `manifest.yml`. If present, read the `id` field (Catalog GUID) and the `title` field (Catalog item name). If no `manifest.yml` exists or `id` is empty, this project has no Catalog reference.
 
-1. **Input Arguments** — If the project is an Automation Script, User-Defined API, or ChatOps Operator, inspect the XML file for `<ScriptParameter>` elements (Automation Script / ChatOps) or inspect C# entry-point method parameters (User-Defined API). For each parameter document:
-   - Parameter name
-   - Expected type (number, text, multiple choice, etc.)
-   - Description of the parameter's purpose
+#### 1.3.2 — Type-Specific Details
 
-   If there are no input parameters, state: *This script has no input parameters.*
+After collecting the generic details, gather additional data points based on the project type detected in step 1.2. If a project type is not listed below, no additional details are needed.
+
+##### Ad-Hoc Data Source *(multi-instance)*
+
+A single project may contain **multiple** ad-hoc data sources. Enumerate every class that implements `IGQIDataSource` and gather the following **per instance**:
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Name** | Read the `[GQIMetaData(Name = "...")]` attribute on the class |
+| **Summary** | Describe what this specific data source does (3–5 sentences from the `.cs` file) |
+| **Library Name** | Read the `<Param type="libraryName">` value from the DMSScript XML file |
+| **Implemented Interfaces** | List all GQI interfaces the class implements (starting with `IGQI`) |
+| **Input Arguments** | Parse the `GetInputArguments()` method return value → table: Name, Type, Is Required, Description |
+| **Output Columns** | Parse the `GetColumns()` method return value → table: Name, Type, Description |
+
+##### Data Transformer *(multi-instance)*
+
+Same multi-instance handling as Ad-Hoc Data Source. Enumerate every class implementing `IGQIRowOperator` and/or `IGQIColumnOperator`.
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Name** | Read the `[GQIMetaData(Name = "...")]` attribute on the class |
+| **Summary** | Describe what this transformer does (3–5 sentences from the `.cs` file) |
+| **Library Name** | Read the `<Param type="libraryName">` value from the DMSScript XML file |
+| **Implemented Interfaces** | List all GQI interfaces the class implements (starting with `IGQI`) |
+| **Input Arguments** | Parse the `GetInputArguments()` method return value → table: Name, Type, Is Required, Description |
+| **Operations** | Determine whether a row is added/updated or a column is added/updated based on the `IGQIRowOperator` / `IGQIColumnOperator` implementation → table: Operation (Add/Update), Target (Row/Column), Description |
+
+##### User-Defined API *(multi-instance)*
+
+A single project may expose **multiple** API endpoints. Enumerate every class annotated with `[AutomationEntryPoint(AutomationEntryPointType.Types.OnApiTrigger)]` and gather the following **per endpoint**:
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Endpoints** | Detect route attributes. List each endpoint (path/route) and associated method(s). |
+| **Input** | Inspect usage of `ApiTriggerInput` in the entry-point method — identify what fields of `requestData` are accessed, their expected types and structure |
+| **Output** | Identify the response: status codes returned, type of data in the body, format (JSON, plain text, etc.) |
+| **Supported Methods** | Determine which HTTP methods are handled (GET, PUT, POST, DELETE, etc.) from conditional logic on the request method |
+
+##### Automation Shared Library
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Library Name** | Read the `<Param type="libraryName">` value from the DMSScript XML file |
+| **Consumers** | Scan **all** DMSScript XML files in the repository for `<Param type="scriptRef">{SCRIPTNAME}:{LIBRARYNAME}</Param>` where `{SCRIPTNAME}` is the name of the script containing this library and `{LIBRARYNAME}` matches the library name. List the consuming project names. |
+| **Public API** | Summarize the publicly exposed interfaces, classes, properties, and methods from the `.cs` source files |
+
+##### ChatOps Operator
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Input Parameters** | Read `<ScriptParameter>` elements from the DMSScript XML → table: Name, Description, Format (e.g. `number`, `string`, `"agent id/element id"`) |
+| **Output** | Describe what the script outputs by inspecting calls to `engine.AddSingularJsonOutput(` and `engine.AddScriptOutput()` — what data is returned and in what structure |
+
+##### Interactive Automation Script
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Toolkit** | Check if the `.csproj` references the `Skyline.DataMiner.Utils.InteractiveAutomationScriptToolkit` NuGet package. If found, add a note: *"Created with Interactive Automation Script Toolkit."* |
+| **Dialogs** | Identify all classes inheriting from `Dialog` or `Section` in the `.cs` files. For each dialog/screen, describe its purpose and the key controls it presents (buttons, text fields, dropdowns, etc.) |
+
+##### Automation Script
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Purpose** | Determine whether the script is user-facing (launched by operators) or an internal helper (called by other scripts or triggered automatically) |
+| **Interactions** | Identify interactions with DataMiner objects: elements (note the protocol name), views, services, profiles, alarms, correlation rules |
+| **Input Parameters** | Read `<ScriptParameter>` elements from the DMSScript XML **and** `GetScriptParam` calls in the `.cs` files → table: Name, Description, Format (e.g. `number`, `string`, `"agent id/element id"`) |
+
+##### Connector
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Communication Type** | Read the connection type from the Protocol XML (SNMP, HTTP, serial, etc.) |
+| **Pages** | List all UI pages defined in the Protocol XML with a brief summary of each |
+| **Tables** | For each table: Description/Name, Parameter ID, list of column names |
+| **Timers** | List each timer with its interval and what group(s) it triggers |
+
+##### NuGet Project
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Assembly Name** | Read the `<AssemblyName>` property from the `.csproj` file |
+| **Public API** | Summarize the publicly exposed interfaces, classes, properties, and methods from the `.cs` source files |
+
+##### Shared Project
+
+| Data Point | How to Extract |
+|------------|---------------|
+| **Referenced By** | Scan all `.csproj` files in the repository for `<Import Project="...">` or `<ProjectReference Include="...">` entries that point to this shared project's `.shproj` or `.projitems` file. List the referencing project names. |
+| **Public API** | Summarize the publicly exposed interfaces, classes, properties, and methods from the `.cs` source files |
 
 
 ### 1.4 — Write Project READMEs
 
-For **each project**, create or update `README.md` at the project root (same directory as the `.csproj`) using the following structure:
+For **each project**, create or update `README.md` at the project root (same directory as the `.csproj`) using a **generic header** followed by a **type-specific body**.
+
+#### Generic Header (all types)
+
+Every project README starts with this structure:
 
 ```markdown
 # {ProjectName}
 
 **Project Type**: {ProjectType}
+
 **Size**: {TShirtSize}
+
 {Only if Catalog Reference found: **Catalog Item**: [{Catalog item name}](https://catalog.dataminer.services/details/{catalog-item-guid})}
 
 ## Summary
 
-{See 1.3}
-
-## Input Arguments
-{See 1.3 for all input parameters. If no input parameters, state: "This script has no input parameters.". If there are input parameters, use the following table format:}
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| {name} | {type} | {description} |
-
+{2–6 sentences describing the project purpose. Key terms in **bold**.}
 ```
 
-**Rules:**
+#### Type-Specific Body
+
+After the generic header, append the type-specific sections below. If the project type is not listed, no additional sections are needed.
+
+##### Ad-Hoc Data Source
+
+For each ad-hoc data source instance discovered in 1.3.2, add a section:
+
+```markdown
+## {DataSourceName}
+
+{3–5 sentence summary of this data source.}
+
+**Library Name**: {libraryName}
+
+**Interfaces**: {comma-separated list of IGQI interfaces}
+
+### Input Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+
+### Output Columns
+
+| Name | Type | Description |
+|------|------|-------------|
+```
+
+##### Data Transformer
+
+For each data transformer instance discovered in 1.3.2, add a section:
+
+```markdown
+## {TransformerName}
+
+{3–5 sentence summary of this transformer.}
+
+**Library Name**: {libraryName}
+
+**Interfaces**: {comma-separated list of IGQI interfaces}
+
+### Input Arguments
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+
+### Operations
+
+| Operation | Target | Description |
+|-----------|--------|-------------|
+```
+
+##### User-Defined API
+
+For each API endpoint discovered in 1.3.2, add a section:
+
+```markdown
+## {EndpointName}
+
+{3–5 sentence summary of this endpoint.}
+
+### Supported Methods
+
+{List of HTTP methods: GET, PUT, POST, DELETE, etc.}
+
+### Input
+
+{Description of requestData fields, their types, and structure.}
+
+### Response
+
+| Status Code | Description | Body Format |
+|-------------|-------------|-------------|
+```
+
+##### Automation Shared Library
+
+```markdown
+## Library Info
+
+**Library Name**: {libraryName}
+
+### Consumers
+
+{Bulleted list of projects that reference this library, or "No consumers found in this repository."}
+
+### Public API
+
+{Summary of publicly exposed interfaces, classes, properties, and methods.}
+```
+
+##### ChatOps Operator
+
+```markdown
+## Input Parameters
+
+| Name | Description | Format |
+|------|-------------|--------|
+
+## Output
+
+{Description of the data returned via `engine.AddSingularJsonOutput` / `engine.AddScriptOutput` and its structure.}
+```
+
+##### Interactive Automation Script
+
+```markdown
+{If toolkit detected: > add note alert:"Created with Interactive Automation Script Toolkit."}
+
+## Dialogs
+
+| Dialog | Purpose | Key Controls |
+|--------|---------|--------------|
+```
+
+##### Automation Script
+
+```markdown
+## Purpose
+
+{User-facing or internal helper. Brief description of when and how the script is used.}
+
+## Interactions
+
+{Bulleted list of DataMiner objects the script interacts with: elements (protocol name), views, services, profiles, alarms, correlation rules.}
+
+## Input Parameters
+
+| Name | Description | Format |
+|------|-------------|--------|
+```
+
+If there are no input parameters, state: *This script has no input parameters.*
+
+##### Connector
+
+```markdown
+## Communication
+
+**Type**: {SNMP, HTTP, serial, etc.}
+
+## Pages
+
+| Page | Description |
+|------|-------------|
+
+## Tables
+
+| Name | ID | Columns |
+|------|-----|---------|
+
+## Timers
+
+| Timer | Interval | Description |
+|-------|----------|-------------|
+```
+
+##### NuGet Project
+
+```markdown
+## Assembly
+
+**Assembly Name**: {assemblyName}
+
+## Public API
+
+{Summary of publicly exposed interfaces, classes, properties, and methods.}
+```
+
+##### Shared Project
+
+```markdown
+## Referenced By
+
+{Bulleted list of projects that import this shared project, or "No references found in this repository."}
+
+## Public API
+
+{Summary of publicly exposed interfaces, classes, properties, and methods.}
+```
+
+#### Rules
+
 - If the project already has a `README.md`, preserve any content that is still accurate and update sections that are stale or missing.
+- For multi-instance types (Ad-Hoc Data Source, Data Transformer, User-Defined API), the project-level Summary comes first, followed by one `## {InstanceName}` section per detected instance.
 
 ### 1.5 — Write Root README
 
@@ -134,7 +404,7 @@ Create or update `README.md` at the repository root using the following structur
 ```markdown
 # {RepositoryName}
 
-{Repository goal: 1–3 sentences describing the purpose of the **repository**.}
+{Repository goal: 1–4 sentences describing the purpose of the **repository**.}
 
 > [!TIP]
 > The outcome of this repository is available in the Catalog: [{Catalog item name} | Catalog | dataminer.services](https://catalog.dataminer.services/details/{catalog-item-guid})
@@ -163,4 +433,4 @@ Create or update `README.md` at the repository root using the following structur
 - Do not modify any files other than `README.md` files (repository root and project roots).
 - Do not modify `CatalogInformation/README.md` — that file is NOT managed by you.
 - If a project root already has a fully accurate `README.md` that follows the structure above, leave it unchanged.
-- Maximum verbosity: the Summary section per project must be **at most 4 sentences**. The root repository goal must be **at most 3 sentences**.
+- Maximum verbosity: the Summary section per project must be **at most 6 sentences**. The root repository goal must be **at most 4 sentences**.
