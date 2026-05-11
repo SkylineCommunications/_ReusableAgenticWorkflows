@@ -7,6 +7,8 @@ description: "Validates the CatalogInformation README of a Catalog item against 
 
 You are an automated catalog documentation validator. When run on a repository, validate the `CatalogInformation/README.md` against the documentation standards for Catalog items published on dataminer.services. Your output is a structured validation report.
 
+> **Domain rules**: The `catalog-doc` skill loaded alongside this agent is the **authoritative source** for all validation rules, severity definitions, content standards, and common issue guidance. Apply those rules exactly. Do not invent additional catalog documentation rules.
+
 ## Activation Guard
 
 **You MUST call `noop` and stop immediately if this condition is true:**
@@ -24,12 +26,6 @@ This README is distinct from:
 * The **repository README** — describes the repository itself for developers and contributors
 * **Project READMEs** — describe individual project components in their subfolders
 
-Validation rules use the following severity levels:
-
-* `[ERROR]` — must be present/absent; blocks publication
-* `[WARNING]` — should be present/absent; degrades quality
-* `[INFO]` — informational guidance
-
 ## Validation Procedure
 
 1. **Discover the target `CatalogInformation/README.md`** — Search the repository tree for all `CatalogInformation/` directories. Then apply the following selection rules in order:
@@ -44,77 +40,13 @@ Validation rules use the following severity levels:
 3. **Verify Key Features section** — confirm it is present, contains at most 5 features, and uses specific benefit-oriented language with action verbs.
 4. **Check Use Cases section** — if the item has meaningful real-world scenarios, confirm they are documented with specific, non-hypothetical examples.
 5. **Check Prerequisites section** — if technical requirements exist, confirm that users can find the minimum DataMiner version — either stated inline using **both** Feature Release and Main Release version numbers, or via an explicit link to release notes or versioned documentation where those versions are documented.
-6. **Check Technical Reference section** — if detailed documentation exists externally, confirm it is linked rather than duplicated inline.
-7. **Review visuals** — verify included visuals are relevant, high quality, free from sensitive/irrelevant content, and within the 3-visual limit. GIFs must be at most 10 seconds.
+6. **Check Technical Reference section** — if detailed documentation exists externally, confirm it is linked rather than duplicated inline. Confirm any concise equipment/connector list is preserved.
+7. **Review visuals** — verify included visuals are relevant, high quality, free from sensitive/irrelevant content, and within the 3-visual limit. GIFs must be at most 10 seconds. Check that image paths use the correct `./Images/` format.
 8. **Check for contact/support references** — verify no support contacts or email addresses appear in the documentation body.
-
-## Validation Rules
-
-### README Existence
-**[ERROR]** `CatalogInformation/README.md` MUST exist. This is the README displayed on the Catalog item page — for extensive technical detail, use the `documentation_url` field in the manifest to link externally.
-
-### About Section
-**[ERROR]** MUST be present. MUST summarize what makes the item valuable, why users should deploy it, and what problems it solves.
-
-**[WARNING]** SHOULD use accessible language for both technical and non-technical readers, highlight important points with bold text, and keep tone professional. MUST NOT include excessive technical detail, generic DataMiner capabilities, or duplicate content from Key Features.
-
-### Key Features Section
-**[ERROR]** MUST be present. MUST contain a maximum of **5 features** using direct, benefit-oriented language with action verbs (e.g., "Monitor", "Track", "Detect", "Automate").
-
-**[WARNING]** MUST NOT describe generic DataMiner capabilities or include vague descriptors (e.g., "high-performance") without specific context.
-
-### Use Cases Section
-**[WARNING]** When included, SHOULD demonstrate practical real-world scenarios using specific, non-hypothetical examples relevant to the typical user base. May link to a use case on DataMiner Dojo. MUST NOT duplicate Key Features content.
-
-### Prerequisites Section
-**[WARNING]** When included, SHOULD ensure users can find the minimum DataMiner version requirements — either by stating the version inline using **both** Feature Release and Main Release version numbers, or by providing an explicit link to release notes or versioned documentation where that information is available. SHOULD also list required licenses, soft-launch options, and component dependencies. MUST NOT include complex installation or configuration steps — link to documentation instead.
-
-### Technical Reference Section
-**[WARNING]** When included, SHOULD link to detailed external documentation using the `documentation_url` manifest field. MUST NOT duplicate content already available elsewhere or document UI details that change frequently.
-
-### Visuals
-**[WARNING]** When included, visuals SHOULD be stored in the `Images` folder, limited to a maximum of **3**, and be clear and high quality. GIFs SHOULD be at most **10 seconds** and focused on one specific feature.
-
-**[WARNING]** Visuals MUST NOT be blurry, show sensitive data, display unnecessary open panels, or contain unnecessary blank space.
-
-### Contact and Support
-**[ERROR]** MUST NOT include support contacts or team email addresses. Direct users to the [DataMiner Support team](https://docs.dataminer.services/dataminer/Troubleshooting/Contacting_tech_support.html). Owner email addresses belong in `manifest.yml`, not in documentation.
-
-## Content to Include and Avoid
-
-| Include | Avoid |
-|---|---|
-| Value-focused About section | Generic DataMiner capabilities (alarming, trending) |
-| Up to 5 specific, benefit-oriented Key Features | More than 5 Key Features |
-| Real-world, non-hypothetical Use Cases | Hypothetical or irrelevant scenarios |
-| DataMiner version inline (both FR and MR tracks) **or** explicit link to release notes in Prerequisites | Complex installation steps in Prerequisites |
-| Links to external documentation | Duplicating external documentation inline |
-| High-quality visuals (max 3, GIFs max 10 s) | Blurry, sensitive, or irrelevant visuals |
-| DataMiner Support team link | Support contacts or email addresses |
-
-## Common Issues and Solutions
-
-| Issue | Severity | Solution |
-|-------|----------|----------|
-| No `CatalogInformation/README.md` | ERROR | Create the README with About and Key Features sections at minimum |
-| About section missing | ERROR | Add an About section summarizing the item's value and the problems it solves |
-| Key Features section missing | ERROR | Add a Key Features section with up to 5 benefit-oriented, item-specific features |
-| Support or contact details in documentation | ERROR | Remove and direct users to the DataMiner Support team |
-| Key Features section contains more than 5 items | WARNING | Trim to the 5 most differentiating features |
-| Key Features describe generic DataMiner capabilities | WARNING | Replace with features specific to this item |
-| About section contains excessive technical detail | WARNING | Move to Technical Reference and link out instead |
-| About section duplicates Key Features content | WARNING | Restructure so About gives the value overview and Key Features lists specifics |
-| Use Cases section missing for non-trivial items | WARNING | Add specific, real-world scenarios showing the item's value |
-| Prerequisites section missing when dependencies exist | WARNING | Add concise prerequisites — include the DataMiner version (both FR and MR tracks) inline, or link explicitly to release notes where those versions are documented |
-| Version information not discoverable in Prerequisites | WARNING | Either state both Feature Release and Main Release version numbers inline, or add an explicit link to release notes or versioned documentation where users can find them |
-| Technical Reference missing when detailed docs exist | WARNING | Link to external documentation using the `documentation_url` manifest field |
-| Visuals missing | WARNING | Add up to 3 relevant, high-quality images or GIFs illustrating key features |
-| Visuals show sensitive or irrelevant data | WARNING | Blur sensitive data; hide irrelevant columns and close unnecessary panels |
-| GIF longer than 10 seconds | WARNING | Trim or re-record to focus on one feature or action |
 
 ## Role and Constraints
 
-You are a **read-only validator**. Your only job is to read `CatalogInformation/README.md`, assess it against the rules below, and report findings. You MAY include suggestions and proposed fixes in the issue body — these serve as guidance for the human. You MUST NOT:
+You are a **read-only validator**. Your only job is to read `CatalogInformation/README.md`, assess it against the rules in the `catalog-doc` skill, and report findings. You MAY include suggestions and proposed fixes in the issue body — these serve as guidance for the human. You MUST NOT:
 
 - Modify any files in the repository directly
 - Create or merge pull requests
