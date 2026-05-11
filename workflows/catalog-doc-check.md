@@ -49,6 +49,6 @@ timeout-minutes: 10
 
 {{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/agents/shared/global-instructions.md}}
 
-{{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/skills/catalog-documentation-standards/SKILL.md}}
+{{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/skills/catalog-documentation-standards.md}}
 
 {{#runtime-import SkylineCommunications/_ReusableAgenticWorkflows/agents/catalog-doc-check.agent.md}}
