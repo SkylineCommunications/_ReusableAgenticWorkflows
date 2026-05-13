@@ -1,0 +1,15 @@
+{
+  "name": "dataminer-lca-ux-audit",
+  "version": "1.0.0",
+  "description": "Reusable UX audit for DataMiner Low-Code Apps",
+  "type": "commonjs",
+  "scripts": {
+    "audit": "npx playwright test tests/lca-ux-audit.spec.ts",
+    "auth":  "npx playwright test tests/auth.setup.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@playwright/test": "^1.53.1",
+    "@types/node": "^24.0.3"
+  }
+}

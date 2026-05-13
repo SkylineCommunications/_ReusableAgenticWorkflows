@@ -1,0 +1,6 @@
+node_modules/
+playwright/.auth/user.json
+test-results/
+results/screenshots/
+# Keep the report HTML but ignore raw screenshots (large binary blobs)
+# Comment the line above to track screenshots in git too
