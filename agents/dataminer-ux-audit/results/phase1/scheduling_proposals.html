@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scheduling — Design Proposal Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #080b10; color: #e8eef7; font-family: "Rajdhani", sans-serif; }
+    body { overflow: hidden; }
+    :root {
+      --control-bg: #0A0A0A;
+      --control-border: rgba(255,255,255,0.1);
+      --text-muted: #94a3b8;
+      --ease: cubic-bezier(.22,1,.36,1);
+      --mono: "JetBrains Mono", monospace;
+      --display: "Rajdhani", sans-serif;
+      --secondary-blue: #60A5FA;
+      --secondary-orange: #FB923C;
+      --secondary-gold: #F59E0B;
+    }
+    .mono { font-family: var(--mono); }
+    .control-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 88px;
+      z-index: 1000;
+      background: var(--control-bg);
+      border-bottom: 1px solid var(--control-border);
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+      backdrop-filter: blur(14px);
+    }
+    .control-row {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .control-row:last-child { border-bottom: 0; }
+    .control-label {
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 11px;
+      min-width: 52px;
+      white-space: nowrap;
+    }
+    .control-label.app-label {
+      min-width: auto;
+      text-transform: none;
+      letter-spacing: .08em;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn {
+      height: 31px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #9aa6b2;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: var(--display);
+      letter-spacing: .01em;
+      transition: transform .2s var(--ease), background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease);
+    }
+    .tab-btn:hover { transform: translateY(-1px); color: #eef3fb; border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); }
+    .tab-btn.active { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 6px 22px rgba(0,0,0,0.28); }
+    .level-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 16px currentColor; }
+
+    #viewer {
+      position: fixed;
+      top: 88px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-width: 1480px;
+      overflow: auto;
+      background: radial-gradient(circle at top, rgba(255,255,255,.05), transparent 35%), #070b11;
+    }
+    #viewer::-webkit-scrollbar,
+    .page-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    #viewer::-webkit-scrollbar-thumb,
+    .page-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
+
+    .proposal-panel { display: none; min-height: calc(100vh - 88px); }
+    .proposal-panel.active { display: block; animation: panelIn .45s var(--ease); }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .proposal-panel[data-level="l1"] {
+      --bg: #1A2230;
+      --surface: #1f2a39;
+      --surface-2: #223245;
+      --border: rgba(123,165,175,.2);
+      --border-soft: rgba(123,165,175,.12);
+      --header-bg: #1E2D3D;
+      --header-text: #c7d1dc;
+      --header-border: rgba(77,182,172,.16);
+      --nav-bg: #1A2030;
+      --nav-border: rgba(255,255,255,.05);
+      --nav-text: #8ea3b7;
+      --nav-active-bg: rgba(0,230,118,.12);
+      --nav-active-text: #f6fffb;
+      --nav-active-border: rgba(0,230,118,.22);
+      --text: #dfe8f1;
+      --muted: #8aa1b4;
+      --title: #00E676;
+      --accent: #2fd3a6;
+      --accent-soft: rgba(47,211,166,.14);
+      --accent-strong: #74f5ca;
+      --section-title: #b8ccdb;
+      --track: rgba(255,255,255,.08);
+      --row-border: rgba(255,255,255,.08);
+      --row-alt: rgba(255,255,255,.02);
+      --shadow: 0 14px 28px rgba(0,0,0,.2);
+      --radius: 10px;
+      --label-rail-bg: rgba(255,255,255,.94);
+      --label-rail-text: #132331;
+      --ops-edge: #2dd4bf;
+      --state-draft: #9C27B0;
+      --state-tentative: #FFD600;
+      --state-confirmed: #4CAF50;
+      --state-running: #00E676;
+      --state-completed: #2196F3;
+      --state-error: #F44336;
+    }
+    .proposal-panel[data-level="l2"] {
+      --bg: #17212A;
+      --surface: #20303B;
+      --surface-2: #253846;
+      --border: rgba(102,191,184,.16);
+      --border-soft: rgba(102,191,184,.12);
+      --header-bg: #223544;
+      --header-text: #d3e0eb;
+      --header-border: rgba(60,215,173,.18);
+      --nav-bg: #18202C;
+      --nav-border: rgba(255,255,255,.05);
+      --nav-text: #9ab2c4;
+      --nav-active-bg: rgba(45,212,191,.12);
+      --nav-active-text: #f2fffc;
+      --nav-active-border: rgba(45,212,191,.22);
+      --text: #e5edf5;
+      --muted: #9bb2c1;
+      --title: #00E676;
+      --accent: #2dd4bf;
+      --accent-soft: rgba(45,212,191,.14);
+      --accent-strong: #7af1e1;
+      --section-title: #d9edf0;
+      --track: rgba(255,255,255,.09);
+      --row-border: rgba(255,255,255,.08);
+      --row-alt: rgba(255,255,255,.025);
+      --shadow: 0 18px 32px rgba(0,0,0,.22);
+      --radius: 12px;
+      --label-rail-bg: rgba(246,252,252,.95);
+      --label-rail-text: #102430;
+      --ops-edge: #2dd4bf;
+      --state-draft: #9C27B0;
+      --state-tentative: #FFD600;
+      --state-confirmed: #4CAF50;
+      --state-running: #00E676;
+      --state-completed: #2196F3;
+      --state-error: #F44336;
+    }
+    .proposal-panel[data-level="l3"] {
+      --bg: #0D1520;
+      --surface: #0F1C28;
+      --surface-2: #0b1621;
+      --border: rgba(104,144,180,.24);
+      --border-soft: rgba(104,144,180,.16);
+      --header-bg: #0A1018;
+      --header-text: #e6edf6;
+      --header-border: rgba(245,164,42,.42);
+      --nav-bg: #0A1018;
+      --nav-border: rgba(104,144,180,.14);
+      --nav-text: #91a7bf;
+      --nav-active-bg: rgba(245,164,42,.1);
+      --nav-active-text: #edf4fc;
+      --nav-active-border: rgba(245,164,42,.22);
+      --text: #dbe7f3;
+      --muted: #7d97ae;
+      --title: #edf4fc;
+      --accent: #F5A42A;
+      --accent-soft: rgba(245,164,42,.12);
+      --accent-strong: #f6b44b;
+      --section-title: #b8cadc;
+      --track: rgba(125,151,174,.15);
+      --row-border: rgba(104,144,180,.18);
+      --row-alt: rgba(13,21,32,.35);
+      --shadow: 0 20px 44px rgba(0,0,0,.28);
+      --radius: 10px;
+      --label-rail-bg: #f5f8fc;
+      --label-rail-text: #10202f;
+      --ops-edge: #2dd4bf;
+      --state-draft: #B785FF;
+      --state-tentative: #F2C94C;
+      --state-confirmed: #4CC870;
+      --state-running: #42F59B;
+      --state-completed: #55A8FF;
+      --state-error: #FF6B6B;
+    }
+    .proposal-panel[data-level="l4"] {
+      --bg: #060B12;
+      --surface: #0C1520;
+      --surface-2: #0a111a;
+      --border: rgba(45,212,191,.2);
+      --border-soft: rgba(96,165,250,.14);
+      --header-bg: #0A1018;
+      --header-text: #e8f6f4;
+      --header-border: rgba(45,212,191,.22);
+      --nav-bg: #0C1520;
+      --nav-border: rgba(45,212,191,.12);
+      --nav-text: #8fb3c8;
+      --nav-active-bg: rgba(45,212,191,.08);
+      --nav-active-text: #e9faf8;
+      --nav-active-border: rgba(45,212,191,.28);
+      --text: #dbedf1;
+      --muted: #7ea1b1;
+      --title: #e7fbf8;
+      --accent: #2DD4BF;
+      --accent-soft: rgba(45,212,191,.14);
+      --accent-strong: #8cf5e8;
+      --section-title: #b9f2ea;
+      --track: rgba(96,165,250,.14);
+      --row-border: rgba(45,212,191,.14);
+      --row-alt: rgba(12,21,32,.42);
+      --shadow: 0 24px 54px rgba(0,0,0,.32);
+      --radius: 14px;
+      --label-rail-bg: rgba(10,17,26,.88);
+      --label-rail-text: #d9eef1;
+      --ops-edge: #2dd4bf;
+      --state-draft: #C39BFF;
+      --state-tentative: #F5C65E;
+      --state-confirmed: #54CC82;
+      --state-running: #4AF7B2;
+      --state-completed: #5AA9FF;
+      --state-error: #FF7C7C;
+    }
+
+    .app-shell {
+      min-height: calc(100vh - 88px);
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at top right, rgba(255,255,255,.03), transparent 22%), var(--bg);
+      color: var(--text);
+    }
+    .proposal-panel[data-level="l3"] .app-shell {
+      background-image: radial-gradient(circle at top right, rgba(245,164,42,.08), transparent 24%), radial-gradient(circle at bottom left, rgba(96,165,250,.08), transparent 20%);
+    }
+    .proposal-panel[data-level="l4"] .app-shell {
+      background-image: radial-gradient(circle at top right, rgba(45,212,191,.1), transparent 24%), radial-gradient(circle at bottom left, rgba(96,165,250,.1), transparent 20%);
+    }
+    .app-header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      background: var(--header-bg);
+      color: var(--header-text);
+      border-bottom: 1px solid var(--header-border);
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.03);
+      flex-shrink: 0;
+    }
+    .proposal-panel[data-level="l3"] .app-header,
+    .proposal-panel[data-level="l4"] .app-header { border-bottom-width: 3px; }
+    .app-brand {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .crumbs { font-size: 12px; opacity: .82; white-space: nowrap; letter-spacing: .03em; }
+    .header-spacer { flex: 1; }
+    .header-meta { display: flex; align-items: center; gap: 10px; }
+    .ghost-icon {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      font-size: 13px;
+      color: inherit;
+    }
+    .header-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.06));
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .app-body { flex: 1; display: flex; min-height: 0; }
+    .left-nav {
+      width: 56px;
+      flex-shrink: 0;
+      background: var(--nav-bg);
+      border-right: 1px solid var(--nav-border);
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-item {
+      height: 38px;
+      border-radius: 11px;
+      color: var(--nav-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 1px solid transparent;
+      font-size: 15px;
+      transition: all .2s var(--ease);
+    }
+    .nav-item.active {
+      background: var(--nav-active-bg);
+      color: var(--nav-active-text);
+      border-color: var(--nav-active-border);
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+    }
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 7px;
+      bottom: 7px;
+      width: 3px;
+      border-radius: 0 999px 999px 0;
+      background: var(--accent);
+    }
+    .nav-spacer { flex: 1; }
+    .page-scroll { flex: 1; min-width: 0; overflow: auto; }
+    .page-wrap { padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .page-title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+    .page-title { font-size: 34px; font-weight: 700; letter-spacing: .02em; color: var(--title); }
+    .page-kicker { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .16em; }
+    .proposal-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .top-metrics { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+    .metric-card,
+    .filter-panel,
+    .timeline-card,
+    .table-card,
+    .sub-card,
+    .inline-filter-bar,
+    .empty-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .proposal-panel[data-level="l4"] .metric-card,
+    .proposal-panel[data-level="l4"] .filter-panel,
+    .proposal-panel[data-level="l4"] .timeline-card,
+    .proposal-panel[data-level="l4"] .table-card,
+    .proposal-panel[data-level="l4"] .sub-card,
+    .proposal-panel[data-level="l4"] .inline-filter-bar,
+    .proposal-panel[data-level="l4"] .empty-card {
+      backdrop-filter: blur(14px);
+      background: linear-gradient(180deg, rgba(12,21,32,.92), rgba(10,17,26,.94));
+    }
+    .metric-card { padding: 16px; position: relative; overflow: hidden; }
+    .metric-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -10% -65% auto;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,.08), transparent 62%);
+      pointer-events: none;
+    }
+    .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 10px; }
+    .metric-value { font-size: 34px; font-weight: 700; line-height: 1; }
+    .proposal-panel[data-level="l3"] .metric-value,
+    .proposal-panel[data-level="l4"] .metric-value { font-family: var(--mono); }
+    .metric-sub { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 34px; }
+    .metric-strip { height: 6px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 12px; }
+    .metric-fill { display: block; width: 0; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 75%, white 10%)); transition: width 1.1s var(--ease); }
+
+    .split-layout { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 16px; }
+    .main-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .filter-panel { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .14em; color: var(--section-title); font-weight: 700; }
+    .section-chip {
+      font-size: 12px;
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+    }
+    .filter-section { display: flex; flex-direction: column; gap: 10px; }
+    .filter-section.l2-collapsible .section-head::after {
+      content: "▾";
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .input-wrap { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+    .input-shell {
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      background: rgba(255,255,255,.03);
+      display: flex;
+      align-items: center;
+      padding: 0 10px 0 12px;
+      gap: 8px;
+    }
+    .proposal-panel[data-level="l1"] .input-shell,
+    .proposal-panel[data-level="l2"] .input-shell { background: rgba(255,255,255,.035); }
+    .input-shell input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--display);
+      font-size: 14px;
+    }
+    .input-shell button,
+    .ghost-btn,
+    .icon-btn {
+      border: 0;
+      outline: 0;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .input-shell button,
+    .icon-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+    }
+    .ghost-btn {
+      padding: 0 12px;
+      height: 34px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      border: 1px solid var(--border-soft);
+    }
+    .pill-row,
+    .pill-group,
+    .category-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-pill,
+    .category-chip,
+    .mini-pill,
+    .status-tag {
+      min-height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .filter-pill.active,
+    .category-chip.active,
+    .primary-btn {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white 6%), color-mix(in srgb, var(--accent) 72%, black 12%));
+      color: #071117;
+      border: 1px solid transparent;
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+    .proposal-panel[data-level="l1"] .filter-pill.active,
+    .proposal-panel[data-level="l2"] .filter-pill.active,
+    .proposal-panel[data-level="l1"] .category-chip.active,
+    .proposal-panel[data-level="l2"] .category-chip.active,
+    .proposal-panel[data-level="l1"] .primary-btn,
+    .proposal-panel[data-level="l2"] .primary-btn {
+      color: #032118;
+    }
+    .status-yes { background: rgba(0,230,118,.12); border-color: rgba(0,230,118,.2); color: #7df9bf; }
+    .status-no { background: rgba(244,67,54,.12); border-color: rgba(244,67,54,.2); color: #ffaea7; }
+    .radio-list { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      background: rgba(255,255,255,.03);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .radio-item.active { background: rgba(0,230,118,.12); border-color: rgba(0,230,118,.18); color: #bcffe0; }
+    .proposal-panel[data-level="l3"] .radio-item.active { background: rgba(245,164,42,.12); border-color: rgba(245,164,42,.22); color: #ffd7a1; }
+    .proposal-panel[data-level="l4"] .radio-item.active { background: rgba(45,212,191,.12); border-color: rgba(45,212,191,.22); color: #b9fff6; }
+    .legend-stack { display: flex; flex-direction: column; gap: 8px; }
+    .legend-row { display: grid; grid-template-columns: 72px 1fr; gap: 8px; align-items: center; }
+    .legend-name { font-size: 13px; color: var(--muted); }
+    .legend-bar,
+    .status-pill {
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 12px;
+      color: #081016;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .legend-bar { width: 100%; justify-content: flex-start; }
+    .state-draft { background: var(--state-draft); }
+    .state-tentative { background: var(--state-tentative); }
+    .state-confirmed { background: var(--state-confirmed); }
+    .state-running { background: var(--state-running); }
+    .state-completed { background: var(--state-completed); }
+    .state-error { background: var(--state-error); }
+    .proposal-panel[data-level="l3"] .legend-bar,
+    .proposal-panel[data-level="l3"] .status-pill,
+    .proposal-panel[data-level="l4"] .legend-bar,
+    .proposal-panel[data-level="l4"] .status-pill {
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 8px 18px rgba(0,0,0,.2);
+    }
+    .error-banner {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(244,67,54,.16), rgba(251,146,60,.1));
+      border: 1px solid rgba(251,146,60,.24);
+      color: #ffd0c9;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .timeline-card { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .timeline-toolbar,
+    .dual-search {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toolbar-left,
+    .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .primary-btn {
+      height: 38px;
+      padding: 0 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--display);
+    }
+    .mini-pill { color: var(--muted); }
+    .mini-pill.active { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent-strong); }
+    .date-box,
+    .clock-box {
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      background: rgba(255,255,255,.03);
+    }
+    .clock-box {
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: .04em;
+      color: var(--title);
+    }
+    .timeline-header {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 0;
+      padding: 0 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .timeline-header span:nth-child(n+2),
+    .resource-axis span:nth-child(n+2) { text-align: right; }
+    .timeline-stage {
+      position: relative;
+      min-height: 232px;
+      border-radius: calc(var(--radius) - 2px);
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.015));
+      border: 1px solid var(--border-soft);
+    }
+    .proposal-panel[data-level="l3"] .timeline-stage {
+      background: linear-gradient(180deg, rgba(9,17,26,.92), rgba(12,23,35,.92));
+    }
+    .proposal-panel[data-level="l4"] .timeline-stage {
+      background: linear-gradient(180deg, rgba(6,11,18,.98), rgba(9,17,26,.94));
+    }
+    .time-grid-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(255,255,255,.08);
+    }
+    .proposal-panel[data-level="l3"] .time-grid-line { background: rgba(96,165,250,.12); }
+    .proposal-panel[data-level="l4"] .time-grid-line { background: rgba(45,212,191,.1); }
+    .lane-bg {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 58px;
+      border-bottom: 1px solid var(--row-border);
+    }
+    .lane-bg.alt { background: var(--row-alt); }
+    .now-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      left: 61%;
+      border-left: 2px dashed rgba(255,255,255,.9);
+      filter: drop-shadow(0 0 8px rgba(255,255,255,.2));
+      z-index: 4;
+    }
+    .job-bar {
+      position: absolute;
+      height: 34px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 12px;
+      color: #071117;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--job-fill, var(--accent));
+      box-shadow: 0 12px 24px rgba(0,0,0,.18);
+      z-index: 5;
+      opacity: 0;
+      transform: translateX(-18px);
+    }
+    .proposal-panel.animate .job-bar { animation: barSlide .7s var(--ease) forwards; animation-delay: var(--delay, 0ms); }
+    .proposal-panel[data-level="l4"] .job-bar {
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 18px 34px rgba(0,0,0,.28);
+      backdrop-filter: blur(10px);
+    }
+    @keyframes barSlide { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: translateX(0); } }
+
+    .resource-frame {
+      display: grid;
+      grid-template-columns: 148px minmax(0,1fr);
+      border: 1px solid var(--border-soft);
+      border-radius: calc(var(--radius) - 2px);
+      overflow: hidden;
+      min-height: 360px;
+    }
+    .resource-labels {
+      background: var(--label-rail-bg);
+      color: var(--label-rail-text);
+      border-right: 1px solid rgba(0,0,0,.08);
+    }
+    .proposal-panel[data-level="l4"] .resource-labels {
+      background: linear-gradient(180deg, rgba(10,17,26,.98), rgba(9,16,24,.94));
+      border-right-color: rgba(45,212,191,.12);
+    }
+    .resource-labels .axis-top,
+    .resource-grid .axis-top {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--row-border);
+    }
+    .resource-name,
+    .resource-lane {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--row-border);
+      font-size: 13px;
+    }
+    .resource-name { padding: 0 12px; font-weight: 700; }
+    .resource-grid { position: relative; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.015)); }
+    .resource-axis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); width: 100%; }
+    .resource-rows { position: relative; min-height: 320px; }
+    .resource-lane { padding: 0 10px; }
+
+    .inline-filter-bar { padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .filter-block { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-right: 4px; }
+
+    .table-card { overflow: hidden; }
+    .table-card.accent-card { border-top: 3px solid var(--ops-edge, var(--accent)); border-left: 3px solid var(--ops-edge, var(--accent)); }
+    .table-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--row-border);
+      background: rgba(255,255,255,.02);
+    }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th,
+    .data-table td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--row-border);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    .data-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .data-table tbody tr:nth-child(even) { background: var(--row-alt); }
+    .data-table tbody tr:hover { background: rgba(255,255,255,.03); }
+    .mono-cell { font-family: var(--mono); font-size: 12px; }
+    .blue-pill { background: rgba(96,165,250,.14); color: #bfdcff; border: 1px solid rgba(96,165,250,.2); }
+    .gray-pill { background: rgba(148,163,184,.12); color: #d8e0ea; border: 1px solid rgba(148,163,184,.18); }
+
+    .search-layout { display: grid; grid-template-columns: 280px minmax(0,1fr); gap: 16px; }
+    .accordion-row,
+    .checkbox-line,
+    .range-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .accordion-row {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      background: rgba(255,255,255,.03);
+      color: var(--text);
+      font-size: 14px;
+    }
+    .checkbox-stack,
+    .range-stack { display: flex; flex-direction: column; gap: 8px; }
+    .checkbox-line span:first-child { color: var(--muted); }
+    .empty-card { padding: 20px; }
+    .empty-state {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      color: var(--muted);
+      border: 1px dashed var(--border-soft);
+      border-radius: calc(var(--radius) - 2px);
+      background: rgba(255,255,255,.02);
+    }
+    .action-stack { display: grid; gap: 10px; }
+    .config-btn {
+      height: 46px;
+      border-radius: 14px;
+      border: 1px solid rgba(96,165,250,.22);
+      background: linear-gradient(180deg, rgba(96,165,250,.18), rgba(59,130,246,.1));
+      color: #dcebff;
+      font-family: var(--display);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .about-layout { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 16px; }
+    .about-summary { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+    .version-badge {
+      align-self: flex-end;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(148,163,184,.12);
+      color: #e8eef7;
+      border: 1px solid rgba(148,163,184,.18);
+      font-family: var(--mono);
+    }
+    .proposal-panel[data-level="l3"] .version-badge,
+    .proposal-panel[data-level="l4"] .version-badge { font-family: var(--mono); }
+    .help-btn {
+      align-self: flex-start;
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: linear-gradient(180deg, rgba(45,212,191,.18), rgba(45,212,191,.08));
+      color: var(--accent-strong);
+      cursor: pointer;
+      font-family: var(--display);
+      font-weight: 700;
+    }
+    .stagger { opacity: 0; transform: translateY(10px); transition: opacity .45s var(--ease), transform .45s var(--ease); }
+    .proposal-panel.animate .stagger { opacity: 1; transform: translateY(0); }
+    .note-line { font-size: 13px; color: var(--muted); }
+
+    @media (max-width: 1600px) {
+      .split-layout,
+      .search-layout,
+      .about-layout { min-width: 1420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="control-bar">
+    <div class="control-row">
+      <div class="control-label app-label">Scheduling ·</div>
+      <div class="tabs" id="pageTabs"></div>
+    </div>
+    <div class="control-row">
+      <div class="control-label">Levels</div>
+      <div class="tabs" id="levelTabs"></div>
+    </div>
+  </div>
+  <div id="viewer"></div>
+
+  <script>
+    const pages = [
+      { key: 'job-view', label: 'Job View', icon: '▦', emoji: '🗓️' },
+      { key: 'resource-view', label: 'Resource View', icon: '▤', emoji: '🎛️' },
+      { key: 'ops-board', label: 'Ops Board', icon: '☷', emoji: '🚦' },
+      { key: 'search-jobs', label: 'Search Jobs', icon: '⌕', emoji: '🔎' },
+      { key: 'recurring-jobs', label: 'Recurring Jobs', icon: '↻', emoji: '🔁' },
+      { key: 'app-config', label: 'App Config', icon: '⚙', emoji: '⚙️' },
+      { key: 'about', label: 'About', icon: 'i', emoji: 'ℹ️' }
+    ];
+
+    const levels = [
+      { key: 'l1', label: 'Fix & Polish', dot: '#F5A42A' },
+      { key: 'l2', label: 'Layout Lift', dot: '#F6B33D' },
+      { key: 'l3', label: 'Visual Upgrade', dot: '#60A5FA' },
+      { key: 'l4', label: 'Reimagined', dot: '#2DD4BF' }
+    ];
+
+    const pageDescriptions = {
+      'job-view': 'Gantt-first scheduling workspace',
+      'resource-view': 'Resource allocation and empty-lane oversight',
+      'ops-board': 'Execution control and action visibility',
+      'search-jobs': 'Historical and filtered job discovery',
+      'recurring-jobs': 'Pattern management and process status',
+      'app-config': 'Scheduling configuration and reference types',
+      'about': 'Versioning, support and release context'
+    };
+
+    const metricMap = {
+      'job-view': [
+        { label: 'Visible jobs', value: 2, note: 'Jobs in active horizon', progress: 32 },
+        { label: 'Range presets', value: 7, note: 'Today through next week', progress: 76 },
+        { label: 'Action issues', value: 1, note: 'One highlighted operator concern', progress: 18 }
+      ],
+      'resource-view': [
+        { label: 'Resource pools', value: 14, note: 'Category chips in focus', progress: 62 },
+        { label: 'Timeline lanes', value: 10, note: 'NY PRX-01 through NY PRX-10', progress: 58 },
+        { label: 'Datasource errors', value: 1, note: 'Banner stays visible by design', progress: 24 }
+      ],
+      'ops-board': [
+        { label: 'Active jobs', value: 2, note: 'Live execution rows', progress: 34 },
+        { label: 'Upcoming jobs', value: 1, note: 'One near-term handoff', progress: 22 },
+        { label: 'Action needed', value: 0, note: 'Healthy board at snapshot time', progress: 8 }
+      ],
+      'search-jobs': [
+        { label: 'Result rows', value: 27, note: 'Long-form searchable history', progress: 86 },
+        { label: 'Completed jobs', value: 23, note: 'Blue state dominates', progress: 80 },
+        { label: 'Tentative jobs', value: 2, note: 'Yellow state kept visible', progress: 18 }
+      ],
+      'recurring-jobs': [
+        { label: 'Patterns', value: 0, note: 'Intentional empty-state screen', progress: 6 },
+        { label: 'Process alerts', value: 0, note: 'No workflow noise present', progress: 4 },
+        { label: 'Search tools', value: 2, note: 'Search and more actions remain', progress: 16 }
+      ],
+      'app-config': [
+        { label: 'Config actions', value: 3, note: 'Primary setup shortcuts', progress: 44 },
+        { label: 'Reference types', value: 1, note: 'Single object type row', progress: 22 },
+        { label: 'Defaults bundle', value: 12, note: 'Implied system properties set', progress: 58 }
+      ],
+      'about': [
+        { label: 'Scripts version', value: 1.5, decimals: 1, note: 'Semantic version badge', progress: 38 },
+        { label: 'App build', value: 1200, note: 'Scheduling app package', progress: 68 },
+        { label: 'Version rows', value: 2, note: 'Scripts and app build shown', progress: 20 }
+      ]
+    };
+
+    const stateLegend = [
+      ['draft', 'Draft'],
+      ['tentative', 'Tentative'],
+      ['confirmed', 'Confirmed'],
+      ['running', 'Running'],
+      ['completed', 'Completed'],
+      ['error', 'Error']
+    ];
+
+    const resourceCategories = ['A/V Processors', 'Antenna', 'Audio Processors', 'Cameras', 'Decoders', 'Demodulators', 'E&L_Streamers', 'Firewalls', 'IP Transcoders', 'IRDs', 'Microphones', 'Multiviewer PIPs', 'SDI-IP Gateways', 'Spectrum'];
+    const resourceRows = Array.from({ length: 10 }, (_, i) => `NY PRX-${String(i + 1).padStart(2, '0')}`);
+    const quickRanges = ['Today', 'Next 30 minutes', 'Next hour', 'Next 3 hours', 'Next 6 hours', 'Tomorrow', 'Next week'];
+
+    const searchRows = [
+      ['Investigation Reveals Corruption Scandal Involving High-Ra...', 'JOB #00008', 'completed', '—', '—', '06/11/2025 19:45', '06/11/2025 20:15'],
+      ['Breaking-- Major Tech Company Announces Groundbreakin...', 'JOB #00005', 'completed', '—', '—', '06/11/2025 22:15', '06/11/2025 22:45'],
+      ['Sports Update-- Championship Race Heats Up...', 'JOB #00009', 'completed', '—', '—', '06/11/2025 15:00', '06/11/2025 15:30'],
+      ['Education Reform Proposal Sparks Debate...', 'JOB #00011', 'completed', '—', '—', '06/11/2025 17:30', '06/11/2025 18:00'],
+      ['Health Alert-- New Study Links Common Household Item...', 'JOB #00010', 'completed', '—', '—', '06/11/2025 14:45', '06/11/2025 15:15'],
+      ['Wimbledon Men\'s Singles Final - (REF #0-0019)', 'JOB #00020', 'completed', '—', 'Normal', '07/11/2025 14:00', '07/11/2025 18:30'],
+      ['Anthony Joshua vs Tyson Fury Boxing Match', 'JOB #00027', 'completed', '—', 'High', '07/11/2025 20:00', '07/11/2025 22:00'],
+      ['World Table Tennis Championships', 'JOB #00033', 'tentative', '—', 'Normal', '08/11/2025 10:00', '08/11/2025 12:00'],
+      ['BWF Badminton World Championships', 'JOB #00034', 'tentative', '—', 'Normal', '08/11/2025 12:30', '08/11/2025 15:00'],
+      ['Morning Market Update and Global Outlook', 'JOB #00036', 'completed', '—', 'Low', '09/11/2025 07:00', '09/11/2025 07:30'],
+      ['Prime Minister Press Conference Feed', 'JOB #00037', 'completed', '—', 'Normal', '09/11/2025 08:15', '09/11/2025 09:00'],
+      ['Late Night Election Analysis Special', 'JOB #00038', 'completed', '—', 'High', '09/11/2025 23:30', '10/11/2025 00:30'],
+      ['Regional Weather Emergency Bulletin', 'JOB #00039', 'completed', '—', 'High', '10/11/2025 05:45', '10/11/2025 06:15'],
+      ['International Summit Opening Ceremony', 'JOB #00040', 'completed', '—', 'Normal', '10/11/2025 09:30', '10/11/2025 11:00'],
+      ['Daily Business News Wrap', 'JOB #00041', 'completed', '—', 'Low', '10/11/2025 18:00', '10/11/2025 18:30'],
+      ['Champions League Post-Match Review', 'JOB #00042', 'completed', '—', 'Normal', '10/11/2025 22:30', '10/11/2025 23:00'],
+      ['Election Results Special - Segment A', 'JOB #00043', 'completed', '—', 'High', '11/11/2025 00:30', '11/11/2025 01:15'],
+      ['Election Results Special - Segment B', 'JOB #00044', 'completed', '—', 'High', '11/11/2025 01:15', '11/11/2025 02:00'],
+      ['Weekend Premier League Preview', 'JOB #00045', 'completed', '—', 'Normal', '11/11/2025 10:00', '11/11/2025 10:30'],
+      ['Consumer Technology Roundtable', 'JOB #00046', 'completed', '—', 'Normal', '11/11/2025 11:00', '11/11/2025 12:00'],
+      ['Arts & Culture Spotlight Special', 'JOB #00047', 'completed', '—', 'Low', '11/11/2025 13:30', '11/11/2025 14:00'],
+      ['Breaking News Insert Window', 'JOB #00048', 'completed', '—', 'High', '11/11/2025 16:30', '11/11/2025 16:45'],
+      ['Global Markets Close Report', 'JOB #00049', 'completed', '—', 'Normal', '11/11/2025 17:45', '11/11/2025 18:15'],
+      ['Evening Debate: Energy Policy', 'JOB #00050', 'completed', '—', 'Normal', '11/11/2025 19:00', '11/11/2025 20:00'],
+      ['Midnight Documentary Replay', 'JOB #00051', 'completed', '—', 'Low', '12/11/2025 00:00', '12/11/2025 01:00'],
+      ['International Rugby Final Highlights', 'JOB #00052', 'completed', '—', 'Normal', '12/11/2025 09:15', '12/11/2025 10:00'],
+      ['Closing Bell Investor Call', 'JOB #00053', 'completed', '—', 'Normal', '12/11/2025 16:00', '12/11/2025 16:30']
+    ];
+
+    function metricCard(metric) {
+      return `
+        <div class="metric-card stagger">
+          <div class="metric-label">${metric.label}</div>
+          <div class="metric-value countup" data-count="${metric.value}" data-decimals="${metric.decimals || 0}">${Number(metric.decimals || 0) > 0 ? (0).toFixed(metric.decimals) : '0'}</div>
+          <div class="metric-sub">${metric.note}</div>
+          <div class="metric-strip"><span class="metric-fill width-anim" data-width="${metric.progress}%"></span></div>
+        </div>`;
+    }
+
+    function searchInput(label) {
+      return `
+        <label class="input-wrap">
+          <span>${label}</span>
+          <div class="input-shell">
+            <input type="text" placeholder="${label}">
+            <button type="button">✕</button>
+          </div>
+        </label>`;
+    }
+
+    function legendMarkup() {
+      return `<div class="legend-stack">${stateLegend.map(([key, label]) => `
+        <div class="legend-row stagger">
+          <span class="legend-name">${label}</span>
+          <span class="legend-bar state-${key}">${label}</span>
+        </div>`).join('')}</div>`;
+    }
+
+    function navMarkup(page) {
+      return `${pages.map(p => `<div class="nav-item ${p.key === page ? 'active' : ''}" title="${p.label}">${p.icon}</div>`).join('')}<div class="nav-spacer"></div>`;
+    }
+
+    function shell(page, level, body) {
+      const pageDef = pages.find(p => p.key === page);
+      const levelNames = { l1: 'Faithful reference', l2: 'Layout lift', l3: 'Shared orange system', l4: 'Teal reimagining' };
+      return `
+        <section class="proposal-panel" data-page="${page}" data-level="${level}" id="${page}-${level}">
+          <div class="app-shell">
+            <div class="app-header">
+              <div class="app-brand">SCHEDULING</div>
+              <div class="crumbs">${pageDef.label} · ${level.toUpperCase()} · ${levelNames[level]}</div>
+              <div class="header-spacer"></div>
+              <div class="header-meta">
+                <div class="ghost-icon">✎</div>
+                <div class="ghost-icon">⋯</div>
+                <div class="header-avatar">SV</div>
+              </div>
+            </div>
+            <div class="app-body">
+              <aside class="left-nav">${navMarkup(page)}</aside>
+              <div class="page-scroll">
+                <div class="page-wrap">${body}</div>
+              </div>
+            </div>
+          </div>
+        </section>`;
+    }
+
+    function titleRow(page, level) {
+      const pageDef = pages.find(p => p.key === page);
+      const levelCopy = {
+        l1: 'Faithful dark-theme baseline with green Scheduling DNA',
+        l2: 'Layout-first refinement using the existing teal-green identity',
+        l3: 'Shared solution language with the Facility Manager orange system',
+        l4: 'Unified solution vision with teal glass and cinematic hierarchy'
+      };
+      return `
+        <div class="page-title-row stagger">
+          <div>
+            <div class="page-kicker">${pageDescriptions[page]}</div>
+            <div class="page-title">${pageDef.emoji} ${pageDef.label}</div>
+          </div>
+          <div class="proposal-chip">${level.toUpperCase()} · ${levelCopy[level]}</div>
+        </div>
+        <div class="top-metrics">${metricMap[page].map(metricCard).join('')}</div>`;
+    }
+
+    function timelineHeader() {
+      return `<div class="timeline-header mono"><span>May 13 2026, 6:00</span><span>12:00</span><span>18:00</span><span>May 14</span></div>`;
+    }
+
+    function gridLines() {
+      return `
+        <span class="time-grid-line" style="left:0%"></span>
+        <span class="time-grid-line" style="left:25%"></span>
+        <span class="time-grid-line" style="left:50%"></span>
+        <span class="time-grid-line" style="left:75%"></span>
+        <span class="time-grid-line" style="left:100%"></span>`;
+    }
+
+    function lanes(count, height = 58) {
+      return Array.from({ length: count }, (_, i) => `<div class="lane-bg ${i % 2 ? 'alt' : ''}" style="top:${i * height}px;height:${height}px"></div>`).join('');
+    }
+
+    function renderJobView(level) {
+      const collapsible = level === 'l2' ? ' l2-collapsible' : '';
+      return shell('job-view', level, `
+        ${titleRow('job-view', level)}
+        <div class="split-layout">
+          <aside class="filter-panel stagger">
+            <div class="filter-section${collapsible}">
+              <div class="section-head"><div class="section-title">Filters</div><div class="section-chip mono">03</div></div>
+              ${searchInput('Search by Job ID')}
+              ${searchInput('Search by Job Name')}
+              ${searchInput('Search by Organization')}
+            </div>
+            <div class="filter-section${collapsible}">
+              <div class="section-head"><div class="section-title">Action status</div></div>
+              <div class="pill-row">
+                <div class="filter-pill active">All</div>
+                <div class="filter-pill status-yes">✓ green</div>
+                <div class="filter-pill status-no">🚫 red</div>
+              </div>
+            </div>
+            <div class="filter-section${collapsible}">
+              <div class="section-head"><div class="section-title">Schedule Type</div></div>
+              <div class="radio-list">
+                <div class="radio-item active">⏰ Scheduled</div>
+                <div class="radio-item">🔄 Ad Hoc</div>
+                <div class="radio-item">All</div>
+              </div>
+            </div>
+            <div class="filter-section">
+              <div class="section-head"><div class="section-title">Job states</div></div>
+              ${legendMarkup()}
+            </div>
+          </aside>
+          <div class="main-stack">
+            <section class="timeline-card stagger">
+              <div class="timeline-toolbar">
+                <div class="toolbar-left">
+                  <button class="primary-btn" type="button">+ New</button>
+                  <div class="pill-row">${quickRanges.map((range, index) => `<div class="mini-pill ${index === 0 ? 'active' : ''}">${range}</div>`).join('')}</div>
+                </div>
+                <div class="toolbar-right">
+                  <div class="date-box">May 13 <span>📅</span><span>🔖</span></div>
+                  <div class="clock-box mono">15:13:56</div>
+                </div>
+              </div>
+              ${timelineHeader()}
+              <div class="timeline-stage">
+                ${gridLines()}
+                ${lanes(4)}
+                <div class="now-line"></div>
+                <div class="job-bar state-completed" style="top:74px;left:76%;width:12%;--delay:120ms;--job-fill:var(--state-completed)">
+                  <span>JOB #00069</span>
+                  <span>✎ ⋯</span>
+                </div>
+                <div class="job-bar state-confirmed" style="top:134px;left:80%;width:11%;--delay:200ms;--job-fill:linear-gradient(90deg, var(--state-confirmed), var(--state-tentative))">
+                  <span>JOB #00070</span>
+                  <span>⋯</span>
+                </div>
+              </div>
+            </section>
+            <section class="table-card stagger accent-card">
+              <div class="table-head">
+                <div class="section-title">Design callouts</div>
+                <div class="section-chip">Gantt rendering stays CSS-only</div>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr><th>Focus</th><th>Proposal change</th><th>Result</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Timeline</td><td>${level === 'l1' ? 'Faithful teal canvas and current state colors' : level === 'l2' ? 'Better hour labeling and softer rounded bars' : level === 'l3' ? 'Orange-accent command-center timeline with Rajdhani headers' : 'Teal glass timeline with refined clock widget'}</td><td>Improves scan speed</td></tr>
+                  <tr><td>Filters</td><td>${level === 'l1' ? 'Existing search stack preserved' : level === 'l2' ? 'Cleaner grouped sections and collapsible rhythm' : level === 'l3' ? 'Dark navy filter rail aligned with FM tokens' : 'Polished floating filter stack with glass edges'}</td><td>Lower visual friction</td></tr>
+                  <tr><td>States</td><td>Draft, Tentative, Confirmed, Running, Completed and Error remain recognizable across every level</td><td>Preserves operator memory</td></tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+        </div>`);
+    }
+
+    function renderResourceView(level) {
+      return shell('resource-view', level, `
+        ${titleRow('resource-view', level)}
+        <div class="split-layout">
+          <aside class="filter-panel stagger">
+            <div class="error-banner">error: Could not create instance of data source... Scheduling.MediaOps_GQI_Scheduling_Get... tion of OnInit: The CancellationTokenSource...</div>
+            <div class="filter-section">
+              <div class="section-head"><div class="section-title">Resource pool</div></div>
+              ${searchInput('Search resource pool')}
+            </div>
+            <div class="filter-section">
+              <div class="section-head"><div class="section-title">Resource pool categories</div></div>
+              <div class="category-cloud">${resourceCategories.map((cat, i) => `<div class="category-chip ${i < 5 ? 'active' : ''}">${cat}</div>`).join('')}</div>
+            </div>
+            <div class="filter-section">
+              <div class="section-head"><div class="section-title">Job states</div></div>
+              ${legendMarkup()}
+            </div>
+          </aside>
+          <div class="main-stack">
+            <section class="timeline-card stagger">
+              <div class="timeline-toolbar">
+                <div class="toolbar-left">
+                  <button class="primary-btn" type="button">+ New</button>
+                  <button class="ghost-btn" type="button">⛃ Filter</button>
+                </div>
+                <div class="toolbar-right">
+                  <div class="date-box">May 13 <span>📅</span><span>🔖</span></div>
+                  <div class="clock-box mono">15:13:56</div>
+                </div>
+              </div>
+              <div class="dual-search">
+                <div class="toolbar-left" style="flex:1;min-width:0;">
+                  <div style="flex:1;min-width:280px;">${searchInput('Search resources')}</div>
+                  <div style="flex:1;min-width:280px;">${searchInput('Search jobs')}</div>
+                </div>
+              </div>
+              <div class="resource-frame">
+                <div class="resource-labels">
+                  <div class="axis-top">Resources</div>
+                  ${resourceRows.map(name => `<div class="resource-name">${name}</div>`).join('')}
+                </div>
+                <div class="resource-grid">
+                  <div class="axis-top resource-axis mono"><span>May 13 2026, 6:00</span><span>12:00</span><span>18:00</span><span>May 14</span></div>
+                  <div class="resource-rows">
+                    ${gridLines()}
+                    ${resourceRows.map((_, i) => `<div class="resource-lane ${i % 2 ? 'alt' : ''}" style="position:relative;background:${i % 2 ? 'var(--row-alt)' : 'transparent'}"></div>`).join('')}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>`);
+    }
+
+    function renderOpsBoard(level) {
+      return shell('ops-board', level, `
+        ${titleRow('ops-board', level)}
+        <section class="inline-filter-bar stagger">
+          <div class="filter-block">
+            <span class="filter-label">Execution state</span>
+            <div class="filter-pill active">ACTIVE ✓</div>
+            <div class="filter-pill">UPCOMING</div>
+            <div class="filter-pill">COMPLETED</div>
+            <div class="filter-pill">ALL</div>
+          </div>
+          <div class="filter-block">
+            <span class="filter-label">Action status</span>
+            <div class="filter-pill active">All</div>
+            <div class="filter-pill status-yes">✓</div>
+            <div class="filter-pill status-no">🚫</div>
+          </div>
+          <div class="filter-block">
+            <span class="filter-label">Job Type</span>
+            <div class="filter-pill active">⏰ Scheduled</div>
+            <div class="filter-pill">🔄 Ad Hoc</div>
+            <div class="filter-pill">All</div>
+          </div>
+          <button class="icon-btn" type="button">↻</button>
+        </section>
+        <section class="table-card accent-card stagger">
+          <div class="table-head">
+            <div class="section-title">Execution board</div>
+            <div class="section-chip">Teal edge card preserved across levels</div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Job Start</th><th>Job End</th><th>Job Action Ne...</th><th>Job ID</th><th>Job Name</th><th>State</th><th>Job Priority</th><th>Job Owner</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono-cell">13/05/2026 15:12:00</td>
+                <td class="mono-cell">13/07/2026 16:12:00</td>
+                <td>—</td>
+                <td><span class="status-pill blue-pill">JOB #00070</span></td>
+                <td>JOB #00070</td>
+                <td><span class="status-pill state-running">Running</span></td>
+                <td><span class="status-pill gray-pill">Normal</span></td>
+                <td>—</td>
+                <td>✏️ 📋 ⬛</td>
+              </tr>
+              <tr>
+                <td class="mono-cell">13/05/2026 15:11:00</td>
+                <td class="mono-cell">13/08/2026 16:11:00</td>
+                <td>—</td>
+                <td><span class="status-pill blue-pill">JOB #00069</span></td>
+                <td>JOB #00069</td>
+                <td><span class="status-pill state-tentative">Tentative</span></td>
+                <td><span class="status-pill gray-pill">Normal</span></td>
+                <td>—</td>
+                <td>✏️ 📋</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>`);
+    }
+
+    function renderSearchJobs(level) {
+      return shell('search-jobs', level, `
+        ${titleRow('search-jobs', level)}
+        <div class="search-layout">
+          <aside class="filter-panel stagger">
+            <div class="section-head"><div class="section-title">Active(0)</div><div class="toolbar-right"><button class="icon-btn" type="button">⛃</button><button class="icon-btn" type="button">⇅</button></div></div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Job name</span><span>▾</span></div>
+              ${searchInput('Filter input')}
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Job ID</span><span>▾</span></div>
+              ${searchInput('Filter input')}
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>State</span><span>▾</span></div>
+              ${searchInput('Filter input')}
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Action needed</span><span>▾</span></div>
+              <div class="checkbox-stack">
+                <div class="checkbox-line"><span>Yes</span><span>☐</span></div>
+                <div class="checkbox-line"><span>No</span><span>☑</span></div>
+              </div>
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Job priority</span><span>▾</span></div>
+              <div class="range-stack">
+                ${searchInput('Min priority')}
+                ${searchInput('Max priority')}
+                <div class="checkbox-line"><span>High</span><span>☐</span></div>
+                <div class="checkbox-line"><span>Normal</span><span>☑</span></div>
+                <div class="checkbox-line"><span>Low</span><span>☐</span></div>
+              </div>
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Job start</span><span>▾</span></div>
+              ${searchInput('Start date')}
+              ${searchInput('End date')}
+            </div>
+            <div class="filter-section">
+              <div class="accordion-row"><span>Job end</span><span>▾</span></div>
+              ${searchInput('Start date')}
+              ${searchInput('End date')}
+            </div>
+          </aside>
+          <section class="table-card stagger">
+            <div class="table-head">
+              <div class="section-title">Job results</div>
+              <div class="section-chip mono">27 rows</div>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Job Name</th><th>Job ID</th><th>State</th><th>Action...</th><th>Job Priority</th><th>Job Start</th><th>Job End</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${searchRows.map(row => `
+                  <tr>
+                    <td>${row[0]}</td>
+                    <td class="mono-cell">${row[1]}</td>
+                    <td><span class="status-pill state-${row[2]}">${row[2].charAt(0).toUpperCase() + row[2].slice(1)}</span></td>
+                    <td>${row[3]}</td>
+                    <td>${row[4]}</td>
+                    <td class="mono-cell">${row[5]}</td>
+                    <td class="mono-cell">${row[6]}</td>
+                    <td>✏️ ⋯</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </section>
+        </div>`);
+    }
+
+    function renderRecurringJobs(level) {
+      return shell('recurring-jobs', level, `
+        ${titleRow('recurring-jobs', level)}
+        <section class="table-card stagger">
+          <div class="table-head">
+            <div class="section-title">Recurring job definitions</div>
+            <div class="toolbar-right"><button class="icon-btn" type="button">⌕</button><button class="icon-btn" type="button">⋯</button></div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Status</th><th>Start of First Occurrence</th><th>Start of Last Occurrence</th><th>Duration</th><th>Pattern</th><th>Process Status</th>
+              </tr>
+            </thead>
+          </table>
+          <div class="empty-card"><div class="empty-state">Nothing to show.</div></div>
+        </section>`);
+    }
+
+    function renderAppConfig(level) {
+      return shell('app-config', level, `
+        ${titleRow('app-config', level)}
+        <div class="split-layout" style="grid-template-columns: 360px minmax(0,1fr);">
+          <section class="filter-panel stagger">
+            <div class="section-head"><div class="section-title">Configuration actions</div></div>
+            <div class="action-stack">
+              <button class="config-btn" type="button">Configure Job ID</button>
+              <button class="config-btn" type="button">Configure Job Defaults</button>
+              <button class="config-btn" type="button">Configure System Properties</button>
+            </div>
+            <div class="note-line">L1 keeps the direct action-first configuration model. L3 and L4 align the shell to the shared solution system without changing the admin flow.</div>
+          </section>
+          <section class="table-card stagger">
+            <div class="table-head">
+              <div class="section-title" style="color:${level === 'l1' || level === 'l2' ? '#00E676' : 'var(--section-title)'}">Reference types</div>
+              <button class="primary-btn" type="button">+ New</button>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Object Type Name</th></tr></thead>
+              <tbody><tr><td>Job</td></tr></tbody>
+            </table>
+          </section>
+        </div>`);
+    }
+
+    function renderAbout(level) {
+      return shell('about', level, `
+        ${titleRow('about', level)}
+        <div class="about-layout">
+          <section class="table-card stagger">
+            <div class="table-head">
+              <div class="section-title">Component versions</div>
+              <div class="version-badge">1.5.3</div>
+            </div>
+            <table class="data-table">
+              <thead><tr><th>Component</th><th>Version</th></tr></thead>
+              <tbody>
+                <tr><td>Scripts</td><td><span class="status-pill gray-pill mono">1.5.3</span></td></tr>
+                <tr><td>App - Scheduling</td><td><span class="status-pill gray-pill mono">1200</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+          <aside class="about-summary sub-card stagger">
+            <div class="version-badge">1.5.3</div>
+            <div>
+              <div class="section-title">Proposal rationale</div>
+              <div class="note-line">The Scheduling proposals mirror the Facility Manager control surface and L1→L4 progression so both apps read as one solution landscape. L3 and L4 intentionally reuse the same shared orange and teal token system.</div>
+            </div>
+            <button class="help-btn" type="button">Help</button>
+          </aside>
+        </div>`);
+    }
+
+    function renderPanel(page, level) {
+      switch (page) {
+        case 'job-view': return renderJobView(level);
+        case 'resource-view': return renderResourceView(level);
+        case 'ops-board': return renderOpsBoard(level);
+        case 'search-jobs': return renderSearchJobs(level);
+        case 'recurring-jobs': return renderRecurringJobs(level);
+        case 'app-config': return renderAppConfig(level);
+        case 'about': return renderAbout(level);
+        default: return '';
+      }
+    }
+
+    function buildTabs() {
+      document.getElementById('pageTabs').innerHTML = pages.map(page => `<button class="tab-btn page-tab" data-page="${page.key}" onclick="show('${page.key}', currentLevel)">${page.label}</button>`).join('');
+      document.getElementById('levelTabs').innerHTML = levels.map(level => `<button class="tab-btn level-tab" data-level="${level.key}" onclick="show(currentPage, '${level.key}')"><span class="level-dot" style="background:${level.dot}; color:${level.dot}"></span>${level.key.toUpperCase()} ${level.label}</button>`).join('');
+    }
+
+    function buildPanels() {
+      document.getElementById('viewer').innerHTML = pages.map(page => levels.map(level => renderPanel(page.key, level.key)).join('')).join('');
+    }
+
+    let currentPage = 'job-view';
+    let currentLevel = 'l1';
+
+    function animateCount(el, delay) {
+      const target = Number(el.dataset.count || 0);
+      const decimals = Number(el.dataset.decimals || 0);
+      const duration = 1000;
+      setTimeout(() => {
+        const start = performance.now();
+        function frame(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          el.textContent = (target * eased).toFixed(decimals);
+          if (t < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }, delay);
+    }
+
+    function animatePanel(panel) {
+      if (!panel) return;
+      panel.classList.remove('animate');
+      panel.querySelectorAll('.stagger').forEach((el, index) => { el.style.transitionDelay = `${index * 65}ms`; });
+      panel.querySelectorAll('.countup').forEach(el => { el.textContent = Number(el.dataset.decimals || 0) > 0 ? (0).toFixed(Number(el.dataset.decimals || 0)) : '0'; });
+      panel.querySelectorAll('.width-anim').forEach(el => { el.style.width = '0'; });
+      requestAnimationFrame(() => {
+        panel.classList.add('animate');
+        panel.querySelectorAll('.countup').forEach((el, index) => animateCount(el, index * 80));
+        panel.querySelectorAll('.width-anim').forEach((el, index) => setTimeout(() => { el.style.width = el.dataset.width; }, index * 80));
+      });
+    }
+
+    function show(page, level) {
+      currentPage = page;
+      currentLevel = level;
+      document.querySelectorAll('.proposal-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.page-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+      document.querySelectorAll('.level-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.level === level));
+      const panel = document.getElementById(`${page}-${level}`);
+      if (panel) {
+        panel.classList.add('active');
+        document.getElementById('viewer').scrollTop = 0;
+        animatePanel(panel);
+      }
+    }
+
+    buildTabs();
+    buildPanels();
+    show('job-view', 'l1');
+    window.show = show;
+  </script>
+</body>
+</html>

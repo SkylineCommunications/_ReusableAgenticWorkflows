@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facility Manager — All Design Proposals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #080b10; color: #f5f7fb; font-family: "Segoe UI", system-ui, sans-serif; }
+    body { overflow: hidden; }
+    :root {
+      --control-bg: rgba(6, 10, 16, 0.96);
+      --control-border: rgba(255,255,255,0.1);
+      --text-muted: #94a3b8;
+      --ease: cubic-bezier(.22,1,.36,1);
+    }
+    .control-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 88px;
+      z-index: 1000;
+      background: linear-gradient(180deg, rgba(9,13,20,.98), rgba(7,10,16,.96));
+      border-bottom: 1px solid var(--control-border);
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+      backdrop-filter: blur(14px);
+    }
+    .control-row {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .control-row:last-child { border-bottom: 0; }
+    .control-label {
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: 11px;
+      min-width: 52px;
+    }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn {
+      height: 31px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #9aa6b2;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .01em;
+      transition: transform .2s var(--ease), background .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease);
+    }
+    .tab-btn:hover { transform: translateY(-1px); color: #eef3fb; border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); }
+    .tab-btn.active { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 6px 22px rgba(0,0,0,0.28); }
+    .level-dot { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 16px currentColor; }
+
+    #viewer {
+      position: fixed;
+      top: 88px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-width: 1440px;
+      overflow: auto;
+      background: radial-gradient(circle at top, rgba(255,255,255,.05), transparent 35%), #070b11;
+    }
+    #viewer::-webkit-scrollbar { width: 10px; height: 10px; }
+    #viewer::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
+
+    .proposal-panel { display: none; min-height: calc(100vh - 88px); }
+    .proposal-panel.active { display: block; animation: panelIn .45s var(--ease); }
+    @keyframes panelIn { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+    .app-shell {
+      min-height: calc(100vh - 88px);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .app-header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      background: var(--header-bg);
+      color: var(--header-text);
+      border-bottom: 1px solid var(--header-border);
+      box-shadow: inset 0 -1px 0 rgba(255,255,255,.03);
+      flex-shrink: 0;
+    }
+    .app-brand {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: inherit;
+    }
+    .crumbs { font-size: 11px; opacity: .85; letter-spacing: .04em; white-space: nowrap; }
+    .header-spacer { flex: 1; }
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      opacity: .9;
+    }
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+    }
+    .live-pill .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 0 0 rgba(52,211,153,.6);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(52,211,153,.45); }
+      70% { box-shadow: 0 0 0 7px rgba(52,211,153,0); }
+      100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+    }
+    .header-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      background: var(--avatar-bg);
+      color: var(--avatar-text);
+    }
+
+    .app-body { flex: 1; display: flex; min-height: 0; }
+    .left-nav {
+      width: var(--nav-width);
+      flex-shrink: 0;
+      background: var(--nav-bg);
+      border-right: 1px solid var(--nav-border);
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .nav-item {
+      min-height: 38px;
+      border-radius: 10px;
+      color: var(--nav-text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      position: relative;
+      border: 1px solid transparent;
+      transition: all .2s var(--ease);
+      overflow: hidden;
+    }
+    .nav-item .icon { width: 18px; text-align: center; flex-shrink: 0; opacity: .95; }
+    .nav-item .label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; }
+    .nav-item.active { background: var(--nav-active-bg); color: var(--nav-active-text); border-color: var(--nav-active-border); box-shadow: var(--nav-active-shadow); }
+    .nav-item.active::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 7px;
+      bottom: 7px;
+      width: 3px;
+      border-radius: 0 999px 999px 0;
+      background: var(--accent);
+    }
+    .nav-item.icon-only { justify-content: center; padding: 0; }
+    .nav-item.icon-only .label { display: none; }
+    .nav-spacer { flex: 1; }
+
+    .page-scroll { flex: 1; min-width: 0; overflow: auto; background: var(--bg); }
+    .page-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .page-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 999px; }
+    .page-wrap { padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .page-title-row { display: flex; align-items: center; gap: 12px; }
+    .page-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--title);
+      letter-spacing: .01em;
+    }
+    .page-kicker { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .14em; }
+    .mono { font-family: "JetBrains Mono", monospace; }
+    .raj { font-family: "Rajdhani", sans-serif; }
+
+    .card, .metric-card, .table-card, .sub-card, .filter-panel, .sidebar-card, .canvas-panel, .map-card, .action-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--section-title);
+      font-weight: 800;
+    }
+    .section-chip {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px;
+      padding: 3px 8px;
+      white-space: nowrap;
+    }
+
+    .metric-grid { display: grid; gap: 14px; }
+    .metric-grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .metric-grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .metric-grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .metric-card { padding: 16px; position: relative; overflow: hidden; }
+    .metric-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -55% auto;
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(255,255,255,.12), transparent 60%);
+      pointer-events: none;
+      opacity: .45;
+    }
+    .metric-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px; }
+    .metric-value { font-size: 38px; font-weight: 800; line-height: 1; color: var(--metric); }
+    .metric-sub { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .metric-strip { height: 6px; background: var(--track); border-radius: 999px; overflow: hidden; margin-top: 12px; }
+    .metric-fill { height: 100%; width: 0; border-radius: 999px; background: var(--accent); transition: width 1.2s var(--ease); }
+    .metric-inline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge.status-active { background: #4ade80; color: #0d1b12; }
+    .badge.status-deprecated { background: #f5a42a; color: #221402; }
+    .badge.type-building { background: rgba(148,163,184,.18); color: #d7dee8; border: 1px solid rgba(148,163,184,.22); }
+    .badge.ghost { background: rgba(255,255,255,.06); color: var(--muted); border: 1px solid var(--border-soft); }
+
+    .overview-layout { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 16px; align-items: start; }
+    .overview-main { display: flex; flex-direction: column; gap: 14px; }
+    .overview-sidebar { display: flex; flex-direction: column; gap: 10px; }
+    .sidebar-card { padding: 14px; }
+    .filter-input, .text-input {
+      width: 100%;
+      height: 34px;
+      border-radius: 9px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text);
+      padding: 0 12px;
+      outline: none;
+      font-size: 12px;
+    }
+    .sidebar-stat {
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px 10px 14px;
+      background: var(--stat-bg);
+      border-radius: 0 10px 10px 0;
+    }
+    .sidebar-stat .label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .sidebar-stat .value { font-size: 24px; font-weight: 800; color: var(--sidebar-metric); }
+
+    .chart-card, .table-card, .sub-card, .map-card, .canvas-panel, .filter-panel { padding: 16px; }
+    .chart-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    .chart-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+
+    .solid-pie-wrap, .donut-wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 170px; }
+    .solid-pie {
+      width: 138px;
+      height: 138px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.15), transparent 34%), var(--solid);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 20px 40px rgba(0,0,0,.22);
+      display: grid;
+      place-items: center;
+      color: rgba(255,255,255,.92);
+      font-weight: 900;
+      font-size: 26px;
+    }
+    .legend-stack { display: flex; flex-direction: column; gap: 10px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-row span:last-child { color: var(--muted); }
+
+    .donut-svg { width: 138px; height: 138px; transform: rotate(-90deg); }
+    .donut-track { fill: none; stroke: var(--track); stroke-width: 12; }
+    .donut-seg { fill: none; stroke-width: 12; stroke-linecap: round; stroke-dasharray: 0 999; transition: stroke-dasharray 1.35s var(--ease); }
+    .donut-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--metric);
+    }
+    .donut-holder { position: relative; width: 138px; height: 138px; }
+
+    .bar-v-wrap { height: 176px; display: flex; align-items: end; gap: 14px; padding: 6px 0 22px; position: relative; }
+    .bar-v-wrap::before, .bar-v-wrap::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: rgba(255,255,255,.08);
+    }
+    .bar-v-wrap::before { top: 40px; }
+    .bar-v-wrap::after { top: 96px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+    .bar-v {
+      width: 100%;
+      max-width: 82px;
+      height: 0;
+      border-radius: 10px 10px 0 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.16), transparent 18%), var(--bar);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+      transition: height 1.2s var(--ease);
+    }
+    .bar-name { font-size: 11px; color: var(--muted); width: 100%; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-value { font-size: 11px; color: var(--text); font-weight: 700; }
+
+    .h-bars { display: flex; flex-direction: column; gap: 12px; }
+    .h-row { display: grid; grid-template-columns: 90px minmax(0,1fr) 62px; gap: 10px; align-items: center; }
+    .h-label { font-size: 11px; color: var(--muted); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .h-track { height: 18px; border-radius: 999px; background: var(--track); overflow: hidden; }
+    .h-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, color-mix(in srgb, var(--bar) 78%, white 8%), var(--bar));
+      transition: width 1.2s var(--ease);
+    }
+    .h-value { font-size: 11px; font-weight: 800; color: var(--metric); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-weight: 800;
+      padding: 0 10px 10px 10px;
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 10px;
+      font-size: 12px;
+      color: var(--text);
+      border-top: 1px solid var(--row-border);
+      vertical-align: middle;
+    }
+    .table-card tbody tr:nth-child(even) td { background: var(--row-alt); }
+    .table-card tbody tr:hover td { background: var(--row-hover); }
+    .table-wrap { overflow: auto; }
+    .cell-stack { display: flex; flex-direction: column; gap: 5px; }
+    .cell-sub { font-size: 11px; color: var(--muted); }
+    .sort-icon { margin-left: 6px; opacity: .5; }
+    .usage-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(148,163,184,.15);
+      color: var(--metric);
+      font-weight: 800;
+      font-size: 11px;
+    }
+    .usage-bar { height: 7px; background: var(--track); border-radius: 999px; overflow: hidden; min-width: 84px; }
+    .usage-bar > span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 75%, white 15%)); transition: width 1.15s var(--ease); }
+
+    .content-split { display: grid; grid-template-columns: 220px minmax(0,1fr) 360px; gap: 16px; align-items: start; }
+    .main-stack, .right-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .filter-panel { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 18px; }
+    .panel-search, .panel-toolbar { display: flex; align-items: center; gap: 8px; }
+    .filter-chip, .toggle-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .filter-section { border-top: 1px solid var(--border-soft); padding-top: 12px; }
+    .filter-name { font-size: 12px; font-weight: 800; color: var(--section-title); margin-bottom: 8px; }
+    .check-list { display: flex; flex-direction: column; gap: 8px; }
+    .check-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); }
+    .check-box { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--border-soft); background: var(--surface-2); }
+    .sub-card { padding-top: 0; overflow: hidden; }
+    .sub-card-header {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      background: var(--sub-header-bg);
+      color: var(--sub-header-text);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+    .sub-card-body { padding: 14px; }
+    .border-top-card .sub-card-header { background: transparent; color: var(--text); border-bottom: 0; border-top: 3px solid var(--accent); }
+    .table-compact td { padding-top: 10px; padding-bottom: 10px; }
+    .skeleton-row { height: 18px; border-radius: 999px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent), var(--surface-2); background-size: 220px 100%, 100% 100%; animation: shimmer 1.6s linear infinite; margin-bottom: 10px; }
+    @keyframes shimmer { from { background-position: -220px 0, 0 0; } to { background-position: 220px 0, 0 0; } }
+
+    .map-card { padding: 14px; }
+    .map-toolbar {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+    .map-canvas {
+      height: 292px;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      background: var(--map-water);
+      border: 1px solid var(--border-soft);
+    }
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: .45;
+    }
+    .land {
+      position: absolute;
+      background: var(--map-land);
+      filter: drop-shadow(0 16px 30px rgba(0,0,0,.2));
+    }
+    .land.e1 { width: 180px; height: 90px; left: 260px; top: 74px; border-radius: 55% 45% 48% 52% / 52% 44% 56% 48%; transform: rotate(8deg); }
+    .land.e2 { width: 90px; height: 64px; left: 340px; top: 146px; border-radius: 58% 42% 50% 50% / 58% 42% 58% 42%; }
+    .land.e3 { width: 74px; height: 34px; left: 220px; top: 106px; border-radius: 55% 45% 40% 60% / 50% 50% 50% 50%; }
+    .land.e4 { width: 100px; height: 52px; left: 455px; top: 154px; border-radius: 55% 45% 58% 42% / 50% 50% 50% 50%; }
+    .marker {
+      position: absolute;
+      left: 318px;
+      top: 118px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      color: #fff;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.25), transparent 38%), var(--accent);
+      box-shadow: 0 16px 40px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 0 6px rgba(255,255,255,.06);
+    }
+    .marker::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      transform: translateY(34px);
+      filter: blur(5px);
+    }
+
+    .rooms-layout { display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 16px; }
+    .bottom-panels { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+
+    .racks-layout { display: grid; grid-template-columns: 240px minmax(0,1fr); gap: 16px; }
+    .range-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .designer-wrap { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 16px; min-height: 640px; }
+    .action-bar {
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--action-border);
+      background: var(--action-bg);
+      color: var(--action-text);
+      padding: 0 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+    .canvas-panel {
+      position: relative;
+      min-height: 580px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: var(--canvas-bg);
+    }
+    .canvas-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--canvas-overlay);
+      pointer-events: none;
+    }
+    .canvas-note {
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      font-size: 18px;
+      letter-spacing: .04em;
+    }
+    .selector-panel { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .room-list { display: flex; flex-direction: column; gap: 8px; }
+    .room-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-soft);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .about-grid { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 16px; align-items: start; }
+    .about-stack { display: flex; flex-direction: column; gap: 16px; }
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 58px;
+      height: 40px;
+      border-radius: 12px;
+      padding: 0 14px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 900;
+      font-size: 15px;
+      box-shadow: inset 0 0 0 1px var(--border-soft);
+    }
+    .version-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    .version-card { padding: 18px; }
+    .big-button {
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--action-border);
+      background: var(--action-bg);
+      color: var(--action-text);
+      font-weight: 900;
+      letter-spacing: .04em;
+      padding: 0 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16px 40px rgba(0,0,0,.18);
+    }
+
+    .stagger { opacity: 0; transform: translateY(10px); transition: opacity .45s var(--ease), transform .45s var(--ease); }
+    .animate .stagger { opacity: 1; transform: translateY(0); }
+
+    #overview-l1, #facilities-l1, #rooms-l1, #racks-l1, #room-designer-l1, #about-l1 {
+      --bg: #252526;
+      --surface: #3a3a3c;
+      --surface-2: #2f2f31;
+      --border: rgba(255,255,255,.08);
+      --border-soft: rgba(255,255,255,.08);
+      --header-bg: #f5a42a;
+      --header-text: #fff;
+      --header-border: rgba(0,0,0,.12);
+      --nav-bg: #1a1a1a;
+      --nav-border: rgba(255,255,255,.06);
+      --nav-text: #b8b8bc;
+      --nav-active-bg: rgba(245,164,42,.16);
+      --nav-active-text: #fff;
+      --nav-active-border: rgba(245,164,42,.25);
+      --nav-active-shadow: none;
+      --nav-width: 220px;
+      --text: #f7f7f8;
+      --muted: #c0c3c8;
+      --title: #f5a42a;
+      --metric: #fff;
+      --accent: #f5a42a;
+      --accent-soft: rgba(245,164,42,.18);
+      --accent-strong: #f8bd59;
+      --section-title: #f5a42a;
+      --track: rgba(255,255,255,.08);
+      --row-border: rgba(255,255,255,.08);
+      --row-alt: rgba(255,255,255,.025);
+      --row-hover: rgba(245,164,42,.08);
+      --sidebar-metric: #fff;
+      --stat-bg: rgba(255,255,255,.02);
+      --input-bg: rgba(255,255,255,.06);
+      --input-border: rgba(255,255,255,.12);
+      --map-water: linear-gradient(180deg, #d8e4ef, #bdd1df);
+      --map-land: #95a9b5;
+      --sub-header-bg: #f5a42a;
+      --sub-header-text: #1f1402;
+      --shadow: 0 10px 30px rgba(0,0,0,.18);
+      --radius: 4px;
+      --avatar-bg: rgba(0,0,0,.18);
+      --avatar-text: #fff;
+      --action-bg: #f5a42a;
+      --action-border: rgba(0,0,0,.05);
+      --action-text: #1f1402;
+      --canvas-bg: #252526;
+      --canvas-overlay: none;
+      --bar: #f5a42a;
+    }
+    #overview-l1 .left-nav { width: 48px; }
+    #overview-l1 .nav-item { justify-content: center; padding: 0; }
+    #overview-l1 .nav-item .label { display: none; }
+    #overview-l1 .overview-sidebar .sidebar-card,
+    #overview-l1 .selector-panel,
+    #overview-l2 .overview-sidebar .sidebar-card {
+      background: #ffffff;
+      color: #1f2937;
+      border-color: #e6e8ec;
+      box-shadow: 0 10px 26px rgba(0,0,0,.08);
+    }
+    #overview-l1 .overview-sidebar .filter-input,
+    #overview-l2 .overview-sidebar .filter-input,
+    #room-designer-l1 .selector-panel .filter-input {
+      background: #fff;
+      color: #1f2937;
+      border-color: #d1d5db;
+    }
+    #overview-l1 .overview-sidebar .section-title,
+    #overview-l2 .overview-sidebar .section-title,
+    #overview-l1 .overview-sidebar .label,
+    #overview-l2 .overview-sidebar .label,
+    #overview-l1 .overview-sidebar .value,
+    #overview-l2 .overview-sidebar .value,
+    #room-designer-l1 .selector-panel,
+    #room-designer-l1 .selector-panel .room-item,
+    #room-designer-l1 .selector-panel .filter-name { color: #1f2937; }
+    #room-designer-l1 .selector-panel { background: #fff; border-color: #e5e7eb; box-shadow: 0 10px 26px rgba(0,0,0,.08); }
+    #room-designer-l1 .selector-panel .room-item { background: #fff7e8; border-color: #f5d39c; }
+    #about-l1 .page-title, #overview-l1 .page-title, #facilities-l1 .page-title, #rooms-l1 .page-title, #racks-l1 .page-title, #room-designer-l1 .page-title { color: #f5a42a; }
+
+    #overview-l2, #facilities-l2, #rooms-l2, #racks-l2, #room-designer-l2, #about-l2 {
+      --bg: #222427;
+      --surface: #323438;
+      --surface-2: #2a2c31;
+      --border: rgba(255,255,255,.08);
+      --border-soft: rgba(255,255,255,.08);
+      --header-bg: #f5a42a;
+      --header-text: #fff;
+      --header-border: rgba(0,0,0,.14);
+      --nav-bg: #1b1c1f;
+      --nav-border: rgba(255,255,255,.05);
+      --nav-text: #d5d7dd;
+      --nav-active-bg: rgba(245,164,42,.08);
+      --nav-active-text: #fff;
+      --nav-active-border: rgba(245,164,42,.22);
+      --nav-active-shadow: inset 3px 0 0 var(--accent);
+      --nav-width: 220px;
+      --text: #f4f5f7;
+      --muted: #c1c7d1;
+      --title: #f5a42a;
+      --metric: #fff;
+      --accent: #f5a42a;
+      --accent-soft: rgba(245,164,42,.16);
+      --accent-strong: #f8c567;
+      --section-title: #e7e9ed;
+      --track: rgba(255,255,255,.08);
+      --row-border: rgba(255,255,255,.08);
+      --row-alt: rgba(255,255,255,.02);
+      --row-hover: rgba(245,164,42,.08);
+      --sidebar-metric: #1f2937;
+      --stat-bg: rgba(255,255,255,.85);
+      --input-bg: rgba(255,255,255,.08);
+      --input-border: rgba(255,255,255,.12);
+      --map-water: linear-gradient(180deg, #cedce8, #b7c8d7);
+      --map-land: #8fa0ab;
+      --sub-header-bg: transparent;
+      --sub-header-text: #fff;
+      --shadow: 0 16px 36px rgba(0,0,0,.18);
+      --radius: 6px;
+      --avatar-bg: rgba(0,0,0,.2);
+      --avatar-text: #fff;
+      --action-bg: linear-gradient(180deg, #f7b549, #f5a42a);
+      --action-border: rgba(0,0,0,.04);
+      --action-text: #241802;
+      --canvas-bg: radial-gradient(circle at top, rgba(245,164,42,.08), transparent 28%), linear-gradient(180deg, #202225, #1b1d1f);
+      --canvas-overlay: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      --bar: #f5a42a;
+    }
+    #overview-l2 .sub-card.border-top-card .sub-card-header,
+    #facilities-l2 .sub-card.border-top-card .sub-card-header,
+    #rooms-l2 .sub-card.border-top-card .sub-card-header,
+    #racks-l2 .sub-card.border-top-card .sub-card-header {
+      border-top: 3px solid #f5a42a;
+      padding-top: 12px;
+      margin: 0 14px;
+    }
+    #room-designer-l2 .selector-panel { background: #2b2d30; }
+
+    #overview-l3, #facilities-l3, #rooms-l3, #racks-l3, #room-designer-l3, #about-l3 {
+      --bg: #0d1520;
+      --surface: #0f1c28;
+      --surface-2: #0b1621;
+      --border: rgba(104,144,180,.24);
+      --border-soft: rgba(104,144,180,.16);
+      --header-bg: #0a1018;
+      --header-text: #e6edf6;
+      --header-border: rgba(245,164,42,.42);
+      --nav-bg: #0a1018;
+      --nav-border: rgba(104,144,180,.14);
+      --nav-text: #91a7bf;
+      --nav-active-bg: rgba(245,164,42,.1);
+      --nav-active-text: #edf4fc;
+      --nav-active-border: rgba(245,164,42,.22);
+      --nav-active-shadow: 0 0 22px rgba(245,164,42,.15);
+      --nav-width: 228px;
+      --text: #dbe7f3;
+      --muted: #7d97ae;
+      --title: #edf4fc;
+      --metric: #f5f7fb;
+      --accent: #f5a42a;
+      --accent-soft: rgba(245,164,42,.12);
+      --accent-strong: #f6b44b;
+      --section-title: #b8cadc;
+      --track: rgba(125,151,174,.15);
+      --row-border: rgba(104,144,180,.18);
+      --row-alt: rgba(13,21,32,.35);
+      --row-hover: rgba(45,212,191,.1);
+      --sidebar-metric: #f5f7fb;
+      --stat-bg: rgba(11,22,33,.9);
+      --input-bg: rgba(10,16,24,.9);
+      --input-border: rgba(104,144,180,.22);
+      --map-water: linear-gradient(180deg, #0c1621, #112132);
+      --map-land: #304759;
+      --sub-header-bg: rgba(10,16,24,.95);
+      --sub-header-text: #edf4fc;
+      --shadow: 0 20px 44px rgba(0,0,0,.28);
+      --radius: 10px;
+      --avatar-bg: linear-gradient(135deg, #f5a42a, #fb923c);
+      --avatar-text: #fff;
+      --action-bg: rgba(245,164,42,.08);
+      --action-border: rgba(245,164,42,.2);
+      --action-text: #f8c670;
+      --canvas-bg: radial-gradient(circle at top, rgba(96,165,250,.08), transparent 28%), linear-gradient(180deg, #09111a, #0d1520);
+      --canvas-overlay: linear-gradient(rgba(96,165,250,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(96,165,250,.09) 1px, transparent 1px);
+      --bar: #f5a42a;
+    }
+    #overview-l3 .page-title, #facilities-l3 .page-title, #rooms-l3 .page-title, #racks-l3 .page-title, #room-designer-l3 .page-title, #about-l3 .page-title {
+      font-family: "Rajdhani", sans-serif;
+      letter-spacing: .03em;
+    }
+    #overview-l3 .metric-value, #overview-l3 .h-value, #overview-l3 .sidebar-stat .value,
+    #facilities-l3 .metric-value, #rooms-l3 .metric-value, #racks-l3 .usage-pill, #about-l3 .version-badge { font-family: "JetBrains Mono", monospace; }
+
+    #overview-l4, #facilities-l4, #rooms-l4, #racks-l4, #room-designer-l4, #about-l4 {
+      --bg: #060b12;
+      --surface: #0c1520;
+      --surface-2: #0a111a;
+      --border: rgba(45,212,191,.2);
+      --border-soft: rgba(96,165,250,.14);
+      --header-bg: rgba(9,14,22,.94);
+      --header-text: #e8f6f4;
+      --header-border: rgba(45,212,191,.22);
+      --nav-bg: #0c1520;
+      --nav-border: rgba(45,212,191,.12);
+      --nav-text: #8fb3c8;
+      --nav-active-bg: rgba(45,212,191,.08);
+      --nav-active-text: #e9faf8;
+      --nav-active-border: rgba(45,212,191,.28);
+      --nav-active-shadow: 0 0 28px rgba(45,212,191,.16);
+      --nav-width: 232px;
+      --text: #dbedf1;
+      --muted: #7ea1b1;
+      --title: #e7fbf8;
+      --metric: #f1fffd;
+      --accent: #2dd4bf;
+      --accent-soft: rgba(45,212,191,.14);
+      --accent-strong: #8cf5e8;
+      --section-title: #b9f2ea;
+      --track: rgba(96,165,250,.14);
+      --row-border: rgba(45,212,191,.14);
+      --row-alt: rgba(12,21,32,.42);
+      --row-hover: rgba(45,212,191,.1);
+      --sidebar-metric: #f1fffd;
+      --stat-bg: linear-gradient(180deg, rgba(12,21,32,.92), rgba(10,17,26,.92));
+      --input-bg: rgba(10,17,26,.95);
+      --input-border: rgba(45,212,191,.18);
+      --map-water: linear-gradient(180deg, #07101a, #0b1724);
+      --map-land: #123246;
+      --sub-header-bg: rgba(12,21,32,.92);
+      --sub-header-text: #e7fbf8;
+      --shadow: 0 24px 54px rgba(0,0,0,.32);
+      --radius: 14px;
+      --avatar-bg: linear-gradient(135deg, rgba(45,212,191,.3), rgba(96,165,250,.55));
+      --avatar-text: #fff;
+      --action-bg: linear-gradient(180deg, rgba(45,212,191,.18), rgba(45,212,191,.08));
+      --action-border: rgba(45,212,191,.22);
+      --action-text: #9ffbf0;
+      --canvas-bg: radial-gradient(circle at top, rgba(45,212,191,.06), transparent 26%), linear-gradient(180deg, #050b12, #09111a);
+      --canvas-overlay: linear-gradient(rgba(45,212,191,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(96,165,250,.08) 1px, transparent 1px);
+      --bar: #2dd4bf;
+    }
+    #overview-l4 .page-title, #facilities-l4 .page-title, #rooms-l4 .page-title, #racks-l4 .page-title, #room-designer-l4 .page-title, #about-l4 .page-title {
+      font-family: "Rajdhani", sans-serif;
+      letter-spacing: .04em;
+    }
+    #overview-l4 .metric-value, #overview-l4 .h-value, #overview-l4 .sidebar-stat .value,
+    #facilities-l4 .metric-value, #rooms-l4 .metric-value, #racks-l4 .usage-pill, #about-l4 .version-badge { font-family: "JetBrains Mono", monospace; }
+    #overview-l4 .badge.status-active, #facilities-l4 .badge.status-active, #rooms-l4 .badge.status-active, #racks-l4 .badge.status-active {
+      background: rgba(45,212,191,.14);
+      color: #9ffbf0;
+      border: 1px solid rgba(45,212,191,.2);
+      backdrop-filter: blur(8px);
+    }
+    #overview-l4 .badge.status-deprecated, #facilities-l4 .badge.status-deprecated, #rooms-l4 .badge.status-deprecated, #racks-l4 .badge.status-deprecated {
+      background: rgba(251,146,60,.14);
+      color: #ffd1ae;
+      border: 1px solid rgba(251,146,60,.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .glass-ring {
+      width: 126px;
+      height: 126px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(6,11,18,.9) 0 48%, transparent 49%), conic-gradient(var(--accent) 0 338deg, rgba(96,165,250,.16) 338deg 360deg);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 24px 40px rgba(0,0,0,.24);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 26px;
+      font-weight: 800;
+      color: #f1fffd;
+      margin: 4px auto 10px;
+    }
+
+    @media (max-width: 1500px) {
+      .overview-layout, .content-split, .rooms-layout, .racks-layout, .about-grid, .designer-wrap { min-width: 1400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="control-bar">
+    <div class="control-row">
+      <div class="control-label">Pages</div>
+      <div class="tabs" id="pageTabs"></div>
+    </div>
+    <div class="control-row">
+      <div class="control-label">Levels</div>
+      <div class="tabs" id="levelTabs"></div>
+    </div>
+  </div>
+  <div id="viewer"></div>
+
+  <script>
+    const pages = [
+      { key: 'overview', label: 'Overview', icon: '◫' },
+      { key: 'facilities', label: 'Facilities', icon: '⌂' },
+      { key: 'rooms', label: 'Rooms', icon: '▣' },
+      { key: 'racks', label: 'Racks', icon: '☷' },
+      { key: 'room-designer', label: 'Room Designer', icon: '✦' },
+      { key: 'about', label: 'About', icon: 'i' }
+    ];
+
+    const levels = [
+      { key: 'l1', label: 'Fix & Polish', dot: '#F5A42A' },
+      { key: 'l2', label: 'Layout Lift', dot: '#F6B33D' },
+      { key: 'l3', label: 'Visual Upgrade', dot: '#60A5FA' },
+      { key: 'l4', label: 'Reimagined', dot: '#2DD4BF' }
+    ];
+
+    const overviewData = {
+      pies: [
+        { title: 'Facilities grouped by Type', label: 'Building', percent: 100, color: '#E8756A' },
+        { title: 'Facilities grouped by State', label: 'Active', percent: 100, color: '#F5B06A' }
+      ],
+      bars: [
+        {
+          title: 'Top 10 facilities with most racks', color: '#F5A42A', suffix: '', max: 75,
+          items: [
+            { name: 'f-kley', value: 75 },
+            { name: 'bm-mich', value: 65 },
+            { name: 'E&_Pop097', value: 10 }
+          ]
+        },
+        {
+          title: 'Top 10 facilities with most used rack units (%)', color: '#E8756A', suffix: '%', max: 24,
+          items: [
+            { name: 'E&_Pop097', value: 24 },
+            { name: 'bm-mich', value: 14 },
+            { name: 'f-kley', value: 5 }
+          ]
+        },
+        {
+          title: 'Top 10 facilities with most free rack units (%)', color: '#F5B06A', suffix: '%', max: 95,
+          items: [
+            { name: 'f-kley', value: 95 },
+            { name: 'bm-mich', value: 86 },
+            { name: 'E&_Pop097', value: 76 }
+          ]
+        }
+      ],
+      kpis: [
+        { title: 'Total Power Capacity...', value: 710, suffix: ' POWER CAPACITY KW', note: '106.34 MAXIMUM RACK CONSUMPTION KW', progress: 15 },
+        { title: 'Total Rack Units (U)', value: 6567, suffix: '', note: 'Across 142 racks', progress: 100 },
+        { title: 'Total Used Rack Units (U)', value: 387, suffix: '', note: '5.89%', progress: 5.89 },
+        { title: 'Total Free Rack Units (U)', value: 6180, suffix: '', note: '94.11%', progress: 94.11 }
+      ],
+      sidebar: [
+        ['Total facility count', 3], ['Floor count', 4], ['Room count', 9], ['Row count', 21], ['Zone count', 7], ['Desk count', 2], ['Rack count', 142]
+      ]
+    };
+
+    const facilitiesRows = [
+      ['bm-mich', 'Active', 'Building', '103.035 of 330', '371 of 3084', '31.22', '12.03'],
+      ['E&_Pop097', 'Active', 'Building', '1.6 of 5', '9 of 40', '32', '22.5'],
+      ['f-kley', 'Active', 'Building', '1.7 of 375', '7 of 3443', '0.45', '0.2']
+    ];
+    const floorsRows = [
+      ['bm-mich-f1', 'Active', '103.035 of 330', '371 of 3084', '31.22', '12.03'],
+      ['f-kley-f1', 'Active', '1.25 of 280', '4 of 2515', '0.45', '0.16'],
+      ['f-kley-f2', 'Active', '0.45 of 95', '3 of 928', '0.47', '0.32'],
+      ['GroundFloor', 'Active', '1.6 of 5', '9 of 40', '32', '22.5']
+    ];
+
+    const roomRows = [
+      ['bm-mich-f1-r105', 'Active', '🗂️ bm-mich-f1', '👥 Producers', '👤 Mallory Durham', '🏠 bm-mich'],
+      ['bm-mich-f1-r106', 'Active', '🗂️ bm-mich-f1', '👥 Producers', '👤 Mikail Johnston', '🏠 bm-mich'],
+      ['Demo Room', 'Deprecated', '🗂️ bm-mich-f1', '👥 Producers', '👤 Mikail Johnston', '🏠 bm-mich'],
+      ['f-kley-f1-r101', 'Active', '🗂️ f-kley-f1', '👥 Audio Operators', '👤 Grady Marks', '🏠 f-kley'],
+      ['f-kley-f1-r102', 'Active', '🗂️ f-kley-f1', '👥 Audio Operators', '👤 Adeeb Banks', '🏠 f-kley'],
+      ['f-kley-f1-r103', 'Active', '🗂️ f-kley-f1', '👥 MCR Operators', '👤 Andi Tamer', '🏠 f-kley'],
+      ['f-kley-f2-r200', 'Active', '🗂️ f-kley-f2', '👥 Product Marketing', '👤 Hilary Corrigan', '🏠 f-kley'],
+      ['f-kley-f2-r203', 'Active', '🗂️ f-kley-f2', '👥 Camera Operators', '👤 Javan Thorpe', '🏠 f-kley'],
+      ['Room001', 'Active', '🗂️ GroundFloor', '', '', '🏠 E&_Pop097']
+    ];
+    const zoneRows = [
+      ['Cooling Zone A', 'Active', '42', '🏠 bm-mich-f1-r105'],
+      ['Stage Zone B', 'Active', '37', '🏠 f-kley-f1-r103'],
+      ['Demo Zone', 'Deprecated', '12', '🏠 Demo Room']
+    ];
+    const rowsPanelRows = [
+      ['Row North-01', 'Active', 'bm-mich-f1-r105'],
+      ['Row North-02', 'Active', 'f-kley-f1-r101'],
+      ['Row South-07', 'Active', 'Room001']
+    ];
+    const desksRows = [
+      ['Desk A-14', 'Active', 'bm-mich-f1-r106'],
+      ['Desk B-03', 'Active', 'f-kley-f2-r200'],
+      ['Desk Demo', 'Deprecated', 'Demo Room']
+    ];
+
+    const rackRows = [
+      ['Demo Rack', 'Active', '19\" 42U 600x800 (Bottom-Up)', 42, 23, 54.76, '⚡5'],
+      ['Demo-Room A1-01 N&S', 'Active', '19\" 47U 800x1000 (Top-Down)', 42, 35, 83.33, '⚡5'],
+      ['Demo-Room A1-02 N&S', 'Active', '19\" 42U 600x800 (Bottom-Up)', 42, 33, 78.57, '⚡5'],
+      ['Demo-Room A1-03 C&S', 'Active', '19\" 42U 800x900 (Bottom-Up)', 42, 32, 76.19, '⚡5'],
+      ['Demo-Room A1-04 C&S', 'Active', '19\" 47U 800x1000 (Bottom-Up)', 42, 32, 76.19, '⚡5'],
+      ['Demo-Room A1-05 P&EA', 'Active', '19\" 47U 800x1000 (Top-Down)', 42, 30, 71.43, '⚡5'],
+      ['Demo-Room A1-06 P&EA', 'Active', '19\" 42U 800x1000 (Bottom-Up)', 42, 36, 85.71, '⚡5'],
+      ['Demo-Room A1-07 M&B', 'Active', '19\" 57U 800x1200 (Bottom-Up)', 42, 36, 85.71, '⚡5'],
+      ['Demo-Room A1-08 M&B', 'Active', '19\" 42U 800x1000 (Bottom-Up)', 42, 26, 61.9, '⚡5'],
+      ['E&_Rack001', 'Active', 'Standard', 40, 9, 22.5, '⚡5']
+    ];
+
+    const designerRooms = ['Demo Room', 'Room001', 'bm-mich-f1-r105', 'bm-mich-f1-r106', 'f-kley-f1-r101', 'f-kley-f1-r102', 'f-kley-f1-r103', 'f-kley-f2-r200', 'f-kley-f2-r203'];
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function statusBadge(value) {
+      const cls = value === 'Deprecated' ? 'status-deprecated' : 'status-active';
+      return `<span class="badge ${cls}">${escapeHtml(value)}</span>`;
+    }
+
+    function navHtml(page, level) {
+      const iconOnly = level === 'l1' && page === 'overview';
+      return `
+        <aside class="left-nav">
+          ${pages.map(item => `
+            <div class="nav-item ${item.key === page ? 'active' : ''} ${iconOnly ? 'icon-only' : ''}">
+              <span class="icon">${item.icon}</span>
+              <span class="label">${item.label}</span>
+            </div>
+          `).join('')}
+          <div class="nav-spacer"></div>
+          <div class="nav-item ${iconOnly ? 'icon-only' : ''}">
+            <span class="icon">⚙</span>
+            <span class="label">Settings</span>
+          </div>
+        </aside>`;
+    }
+
+    function headerHtml(page, level) {
+      const pageLabel = pages.find(p => p.key === page).label;
+      const crumb = level === 'l1' ? '' : `<div class="crumbs">Facility Manager · ${pageLabel}${level === 'l2' ? ' · Proposal' : level === 'l3' ? ' · Visual System' : ' · Reimagined Flow'}</div>`;
+      const meta = level === 'l4'
+        ? `<div class="live-pill"><span class="dot"></span><span>Live Facility Pulse</span></div>`
+        : level === 'l3'
+        ? `<div class="live-pill"><span class="dot"></span><span>Operations sync</span></div>`
+        : `<span>${level === 'l2' ? 'Breadcrumb navigation' : 'WCAG AA contrast pass'}</span>`;
+      return `
+        <header class="app-header">
+          <div class="app-brand">Facility Manager</div>
+          ${crumb}
+          <div class="header-spacer"></div>
+          <div class="header-meta">${meta}</div>
+          <div class="header-avatar">FM</div>
+        </header>`;
+    }
+
+    function shell(page, level, content) {
+      return `
+        <section class="proposal-panel" id="${page}-${level}">
+          <div class="app-shell">
+            ${headerHtml(page, level)}
+            <div class="app-body">
+              ${navHtml(page, level)}
+              <div class="page-scroll">
+                ${content}
+              </div>
+            </div>
+          </div>
+        </section>`;
+    }
+
+    function verticalBars(card) {
+      return `
+        <div class="chart-card stagger" style="--delay:0">
+          <div class="section-head">
+            <div class="section-title">${escapeHtml(card.title)}</div>
+            <div class="section-chip">original ranking</div>
+          </div>
+          <div class="bar-v-wrap">
+            ${card.items.map((item, index) => {
+              const pct = Math.max(8, (item.value / card.max) * 100);
+              return `
+                <div class="bar-col">
+                  <div class="bar-v vertical-anim" style="--bar:${card.color}" data-height="${pct}%"></div>
+                  <div class="bar-value">${item.value}${card.suffix}</div>
+                  <div class="bar-name">${escapeHtml(item.name)}</div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function horizontalBars(card) {
+      return `
+        <div class="chart-card stagger">
+          <div class="section-head">
+            <div class="section-title">${escapeHtml(card.title)}</div>
+            <div class="section-chip">cleaner comparison</div>
+          </div>
+          <div class="h-bars">
+            ${card.items.map((item, index) => {
+              const pct = (item.value / card.max) * 100;
+              return `
+                <div class="h-row">
+                  <div class="h-label">${escapeHtml(item.name)}</div>
+                  <div class="h-track"><div class="h-fill width-anim" style="--bar:${card.color}" data-width="${pct}%"></div></div>
+                  <div class="h-value">${item.value}${card.suffix}</div>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    function solidPie(pie) {
+      return `
+        <div class="chart-card stagger">
+          <div class="section-head">
+            <div class="section-title">${escapeHtml(pie.title)}</div>
+            <div class="section-chip">faithful solid circle</div>
+          </div>
+          <div class="solid-pie-wrap">
+            <div class="solid-pie" style="--solid:${pie.color}">${pie.percent}%</div>
+            <div class="legend-stack">
+              <div class="legend-row"><span class="legend-dot" style="background:${pie.color}"></span><strong>${escapeHtml(pie.label)}</strong> <span>${pie.percent}%</span></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function donutCard(pie, chipText) {
+      const circumference = 314;
+      return `
+        <div class="chart-card stagger">
+          <div class="section-head">
+            <div class="section-title">${escapeHtml(pie.title)}</div>
+            <div class="section-chip">${chipText}</div>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut-holder">
+              <svg class="donut-svg" viewBox="0 0 120 120">
+                <circle class="donut-track" cx="60" cy="60" r="50"></circle>
+                <circle class="donut-seg" cx="60" cy="60" r="50" stroke="${pie.color}" data-circ="${circumference}" data-percent="${pie.percent}"></circle>
+              </svg>
+              <div class="donut-center"><span class="countup" data-count="${pie.percent}" data-suffix="%">0%</span></div>
+            </div>
+            <div class="legend-stack">
+              <div class="legend-row"><span class="legend-dot" style="background:${pie.color}"></span><strong>${escapeHtml(pie.label)}</strong><span>100% of facilities</span></div>
+              <div class="legend-row"><span class="legend-dot" style="background:rgba(255,255,255,.1)"></span><span>Other</span><span>0%</span></div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function overviewSidebar(level) {
+      const extra = level === 'l4'
+        ? `<div class="sidebar-card stagger"><div class="section-head"><div class="section-title">Utilization ring</div></div><div class="glass-ring">94%</div><div class="cell-sub" style="text-align:center;">Free rack units across all facilities</div></div>`
+        : '';
+      return `
+        <div class="overview-sidebar">
+          <div class="sidebar-card stagger">
+            <div class="section-head"><div class="section-title">Facility Filter</div></div>
+            <input class="filter-input" value="" placeholder="Filter facilities...">
+          </div>
+          ${extra}
+          ${overviewData.sidebar.map(([label, value], index) => `
+            <div class="sidebar-card sidebar-stat stagger">
+              <div class="label">${label}</div>
+              <div class="value countup" data-count="${value}">${value}</div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    function kpiCards(level, top) {
+      return `<div class="metric-grid cols-4">
+        ${overviewData.kpis.map((kpi, index) => `
+          <div class="metric-card stagger">
+            <div class="metric-label">${escapeHtml(kpi.title)}</div>
+            <div class="metric-inline">
+              <div class="metric-value countup" data-count="${kpi.value}" ${kpi.value % 1 ? 'data-decimals="2"' : ''}>0</div>
+              ${kpi.suffix ? `<div class="metric-sub">${escapeHtml(kpi.suffix)}</div>` : ''}
+            </div>
+            <div class="metric-sub">${escapeHtml(kpi.note)}</div>
+            <div class="metric-strip"><div class="metric-fill width-anim" data-width="${kpi.progress}%"></div></div>
+          </div>`).join('')}
+      </div>`;
+    }
+
+    function renderOverview(level) {
+      const topKpis = level !== 'l1';
+      const pieMarkup = level === 'l1'
+        ? `<div class="chart-grid-2">${overviewData.pies.map(p => solidPie(p)).join('')}</div>`
+        : `<div class="chart-grid-2">${overviewData.pies.map(p => donutCard(p, level === 'l2' ? 'donut lift' : level === 'l3' ? 'accent ring' : 'animated ring')).join('')}</div>`;
+      const barsMarkup = level === 'l1'
+        ? `<div class="chart-grid-3">${overviewData.bars.map(verticalBars).join('')}</div>`
+        : `<div class="chart-grid-3">${overviewData.bars.map(horizontalBars).join('')}</div>`;
+      const titleNote = {
+        l1: 'Faithful recreation with contrast repaired',
+        l2: 'Same orange DNA, cleaner information hierarchy',
+        l3: 'Navy command center with orange accent restraint',
+        l4: 'Teal operational cockpit with live visual language'
+      }[level];
+      return shell('overview', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger"><div><div class="page-title">Overview</div><div class="page-kicker">${titleNote}</div></div></div>
+          <div class="overview-layout">
+            <div class="overview-main">
+              ${topKpis ? kpiCards(level, true) : ''}
+              ${pieMarkup}
+              ${barsMarkup}
+              ${!topKpis ? kpiCards(level, false) : ''}
+            </div>
+            ${overviewSidebar(level)}
+          </div>
+        </div>`);
+    }
+
+    function filterPanel(titleRows, level, compact = false) {
+      return `
+        <aside class="filter-panel stagger">
+          <div class="panel-search">
+            <input class="filter-input" placeholder="Search">
+          </div>
+          <div class="panel-toolbar">
+            <span class="toggle-pill">Active (0)</span>
+            <span class="filter-chip">⎚</span>
+            <span class="filter-chip">⇅</span>
+          </div>
+          ${titleRows.map(section => `
+            <div class="filter-section">
+              <div class="filter-name">${section.name}</div>
+              ${section.type === 'checkboxes'
+                ? `<div class="check-list">${section.items.map(item => `<label class="check-item"><span class="check-box"></span><span>${item}</span></label>`).join('')}</div>`
+                : section.type === 'ranges'
+                  ? `<div class="range-row">${section.items.map(item => `<span class="filter-chip">${item}</span>`).join('')}</div>`
+                  : `<input class="filter-input" placeholder="Filter">`}
+            </div>`).join('')}
+        </aside>`;
+    }
+
+    function basicTable(headers, rows, options = {}) {
+      return `
+        <div class="table-card stagger ${options.className || ''}">
+          ${options.title ? `<div class="section-head"><div class="section-title">${options.title}</div>${options.chip ? `<div class="section-chip">${options.chip}</div>` : ''}</div>` : ''}
+          <div class="table-wrap">
+            <table class="${options.compact ? 'table-compact' : ''}">
+              <thead>
+                <tr>${headers.map(h => `<th>${h}${options.sort ? '<span class="sort-icon">↕</span>' : ''}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${rows.map(row => `<tr>${row.map((cell, idx) => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    function mapCard(level) {
+      return `
+        <div class="map-card stagger">
+          <div class="map-toolbar">Facilities <span>×</span> <span>⌄</span></div>
+          <div class="map-canvas">
+            <div class="map-grid"></div>
+            <div class="land e1"></div>
+            <div class="land e2"></div>
+            <div class="land e3"></div>
+            <div class="land e4"></div>
+            <div class="marker">2</div>
+          </div>
+        </div>`;
+    }
+
+    function facilitiesSubCard(level, title, body, chip = '') {
+      const borderClass = level === 'l2' ? 'border-top-card' : '';
+      return `
+        <div class="sub-card ${borderClass} stagger">
+          <div class="sub-card-header"><span>${title}</span>${chip ? `<span class="section-chip">${chip}</span>` : ''}</div>
+          <div class="sub-card-body">${body}</div>
+        </div>`;
+    }
+
+    function renderFacilities(level) {
+      const filters = [
+        { name: 'Name', type: 'input' },
+        { name: 'State', type: 'checkboxes', items: ['Draft', 'Deprecated', 'Active'] },
+        { name: 'Facility Type', type: 'checkboxes', items: ['Truck', 'Container', 'Building'] }
+      ];
+      const mainRows = facilitiesRows.map(row => [
+        `<div class="cell-stack"><strong>${row[0]}</strong></div>`,
+        statusBadge(row[1]),
+        `<span class="badge type-building">🏢 ${row[2]}</span>`,
+        row[3],
+        row[4],
+        `${row[5]}%`,
+        `<div class="cell-stack"><div>${row[6]}%</div><div class="usage-bar"><span class="width-anim" data-width="${row[6]}%"></span></div></div>`
+      ]);
+      const floorRows = floorsRows.map(row => [row[0], statusBadge(row[1]), row[2], row[3], `${row[4]}%`, `${row[5]}%`]);
+      const roomsBody = `
+        <div class="section-title" style="margin-bottom:12px;">Loading room hierarchy</div>
+        ${Array.from({length: 8}).map(() => `<div class="skeleton-row"></div>`).join('')}`;
+      return shell('facilities', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger"><div><div class="page-title">Facilities</div><div class="page-kicker">Map, inventory and dependent floor/room panels</div></div></div>
+          <div class="content-split">
+            ${filterPanel(filters, level)}
+            <div class="main-stack">
+              ${level !== 'l1' ? `<div class="metric-grid cols-3">${[
+                ['Facilities', 3, 'Live mapped sites'], ['Rooms', 9, 'Across 4 floors'], ['Racks', 142, 'Powered infrastructure']
+              ].map(item => `<div class="metric-card stagger"><div class="metric-label">${item[0]}</div><div class="metric-value countup" data-count="${item[1]}">0</div><div class="metric-sub">${item[2]}</div></div>`).join('')}</div>` : ''}
+              ${mapCard(level)}
+              ${basicTable(
+                ['Name', 'State', 'Facility Type', 'Power Used (kW)', 'Space Used (U)', 'Power Used (%)', 'Space Used (%)'],
+                mainRows,
+                { title: 'Facilities', chip: level === 'l1' ? 'map + table split' : 'hover-ready table', sort: level !== 'l1' }
+              )}
+            </div>
+            <div class="right-stack">
+              ${facilitiesSubCard(level, 'Floors 🗂️', basicTable(
+                ['Name', 'State', 'Power Used (kW)', 'Space Used (U)', 'Power Used (%)', 'Space Used (%)'],
+                floorRows,
+                { compact: true }
+              ), level === 'l1' ? 'orange header' : level === 'l3' ? 'navy summary' : level === 'l4' ? 'teal layer' : 'top-border card')}
+              ${facilitiesSubCard(level, 'Rooms 🏠', roomsBody, 'loading skeleton')}
+            </div>
+          </div>
+        </div>`);
+    }
+
+    function renderRooms(level) {
+      const filters = [
+        { name: 'Name', type: 'input' },
+        { name: 'State', type: 'checkboxes', items: ['Draft', 'Active', 'Deprecated'] },
+        { name: 'Floor Name', type: 'input' },
+        { name: 'Team Name', type: 'input' },
+        { name: 'Owner Name', type: 'input' },
+        { name: 'Facility Name', type: 'input' }
+      ];
+      const mainRows = roomRows.map(row => [
+        `<strong>${row[0]}</strong>`,
+        statusBadge(row[1]),
+        row[2] || '&nbsp;',
+        row[3] || '&nbsp;',
+        row[4] || '&nbsp;',
+        row[5]
+      ]);
+      const makeSmallRows = (rows, roomColumnLabel) => rows.map(row => [row[0], statusBadge(row[1]), row[2], row[3] || row[2]]);
+      return shell('rooms', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger"><div><div class="page-title">Rooms</div><div class="page-kicker">Directory table with dependent zone, row and desk panels</div></div></div>
+          <div class="rooms-layout">
+            ${filterPanel(filters, level)}
+            <div class="main-stack">
+              ${basicTable(
+                ['Name', 'State', 'Floor Name', 'Team Name', 'Owner Name', 'Facility Name'],
+                mainRows,
+                { title: 'Room inventory', chip: level === 'l1' ? 'original split' : 'cleaned hierarchy', sort: level !== 'l1' }
+              )}
+              <div class="bottom-panels">
+                ${facilitiesSubCard(level, 'Zone 🌀', basicTable(['Name', 'State', 'Cooling Usage (%)', 'Room'], zoneRows.map(r => [r[0], statusBadge(r[1]), `${r[2]}%`, r[3]]), { compact: true }), '')}
+                ${facilitiesSubCard(level, 'Rows 📋', basicTable(['Name', 'State', 'Room Name'], rowsPanelRows.map(r => [r[0], statusBadge(r[1]), r[2]]), { compact: true }), '')}
+                ${facilitiesSubCard(level, 'Desks 🖥️', basicTable(['Name', 'State', 'Room Name'], desksRows.map(r => [r[0], statusBadge(r[1]), r[2]]), { compact: true }), '')}
+              </div>
+            </div>
+          </div>
+        </div>`);
+    }
+
+    function renderRacks(level) {
+      const filters = [
+        { name: 'Name', type: 'input' },
+        { name: 'State', type: 'input' },
+        { name: 'Model', type: 'input' },
+        { name: 'Total Space Usage', type: 'ranges', items: ['no l...', 'no u...'] },
+        { name: 'Space Usage (%)', type: 'ranges', items: ['0%', '100%'] },
+        { name: 'Total Power Usage', type: 'ranges', items: ['min', 'max'] },
+        { name: 'Power Usage (%)', type: 'ranges', items: ['0%', '100%'] },
+        { name: 'Facility', type: 'checkboxes', items: ['bm-mich', 'E&_Pop097', 'f-kley'] }
+      ];
+      const rows = rackRows.map(r => [
+        `<strong>${r[0]}</strong>`,
+        statusBadge(r[1]),
+        r[2],
+        `${r[3]}`,
+        `${r[4]}`,
+        `<div class="cell-stack"><span class="usage-pill">${r[5]}%</span><div class="usage-bar"><span class="width-anim" data-width="${r[5]}%"></span></div></div>`,
+        r[6]
+      ]);
+      return shell('racks', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger"><div><div class="page-title">Racks</div><div class="page-kicker">Dense inventory table with range filters and normalized usage cells</div></div></div>
+          <div class="racks-layout">
+            ${filterPanel(filters, level)}
+            <div class="main-stack">
+              ${basicTable(
+                ['Name', 'State', 'Model', 'Rack Capacity (U)', 'Total Space Usage (U)', 'Space Usage (%)', 'Power C...'],
+                rows,
+                { title: 'Rack inventory', chip: level === 'l4' ? 'teal progress system' : level === 'l3' ? 'navy zebra table' : level === 'l2' ? 'lifted typography' : 'faithful dark table', sort: level !== 'l1' }
+              )}
+            </div>
+          </div>
+        </div>`);
+    }
+
+    function renderRoomDesigner(level) {
+      return shell('room-designer', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger"><div><div class="page-title">Room Designer</div><div class="page-kicker">Empty-state canvas with room selector and placement actions</div></div></div>
+          <div class="action-bar stagger">
+            <div class="action-btn">▦ Placement Operations</div>
+            <div class="action-btn">⌁ Cable Length Calculator</div>
+            <div class="action-btn">? Help</div>
+          </div>
+          <div class="designer-wrap">
+            <div class="canvas-panel stagger">
+              <div class="canvas-note">Nothing to show.</div>
+            </div>
+            <div class="selector-panel stagger">
+              <div>
+                <div class="filter-name">Room Tile Side Size (cm)</div>
+                <div class="metric-sub">Nothing to show.</div>
+              </div>
+              <div>
+                <div class="filter-name">Select a Room</div>
+                <div class="panel-toolbar" style="margin:8px 0 12px;">
+                  <input class="filter-input" placeholder="Search rooms">
+                  <span class="filter-chip">⋯</span>
+                </div>
+              </div>
+              <div class="room-list">
+                ${designerRooms.map(room => `<div class="room-item">${room}</div>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>`);
+    }
+
+    function renderAbout(level) {
+      const useCards = level !== 'l1';
+      const versionBlock = useCards
+        ? `<div class="version-card-grid">
+            <div class="card version-card stagger">
+              <div class="metric-label">Component</div>
+              <div class="page-title" style="font-size:26px; margin-bottom:8px;">App</div>
+              <div class="metric-sub">Facility Manager</div>
+              <div style="margin-top:14px;"><span class="version-badge">433</span></div>
+            </div>
+            <div class="card version-card stagger">
+              <div class="metric-label">Component</div>
+              <div class="page-title" style="font-size:26px; margin-bottom:8px;">Scripts</div>
+              <div class="metric-sub">Automation package</div>
+              <div style="margin-top:14px;"><span class="version-badge">1.1.0</span></div>
+            </div>
+          </div>`
+        : basicTable(
+            ['Component', 'Version'],
+            [
+              ['App - Facility Manager', '<span class="version-badge">433</span>'],
+              ['Scripts', '<span class="version-badge">1.1.0</span>']
+            ],
+            { title: 'Component versions', chip: 'minimal system' }
+          );
+      return shell('about', level, `
+        <div class="page-wrap">
+          <div class="page-title-row stagger" style="justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div class="page-title">About</div>
+              <div class="page-kicker">Application metadata, versions and settings</div>
+            </div>
+            <div class="version-badge">1.1.0</div>
+          </div>
+          <div class="about-grid">
+            <div class="about-stack">
+              ${versionBlock}
+              <div class="card" style="padding:18px;">
+                <div class="section-head"><div class="section-title">App Settings</div></div>
+                <div class="metric-sub" style="margin-bottom:10px;">Google Maps API Key:</div>
+                <input class="text-input" value="" placeholder="">
+                <div style="margin-top:18px;"><span class="big-button">Edit App Settings</span></div>
+              </div>
+            </div>
+            <div class="about-stack">
+              <div class="metric-card stagger">
+                <div class="metric-label">Proposal intent</div>
+                <div class="metric-value">${level.toUpperCase()}</div>
+                <div class="metric-sub">${level === 'l1' ? 'Faithful visual cleanup' : level === 'l2' ? 'Layout-first modernization' : level === 'l3' ? 'Navy visual upgrade' : 'Teal reimagined system'}</div>
+              </div>
+            </div>
+          </div>
+        </div>`);
+    }
+
+    function renderPanel(page, level) {
+      switch (page) {
+        case 'overview': return renderOverview(level);
+        case 'facilities': return renderFacilities(level);
+        case 'rooms': return renderRooms(level);
+        case 'racks': return renderRacks(level);
+        case 'room-designer': return renderRoomDesigner(level);
+        case 'about': return renderAbout(level);
+        default: return '';
+      }
+    }
+
+    function buildTabs() {
+      document.getElementById('pageTabs').innerHTML = pages.map(page => `<button class="tab-btn page-tab" data-page="${page.key}" onclick="show('${page.key}', currentLevel)">${page.label}</button>`).join('');
+      document.getElementById('levelTabs').innerHTML = levels.map(level => `<button class="tab-btn level-tab" data-level="${level.key}" onclick="show(currentPage, '${level.key}')"><span class="level-dot" style="background:${level.dot}; color:${level.dot}"></span>${level.key.toUpperCase()} ${level.label}</button>`).join('');
+    }
+
+    function buildPanels() {
+      const viewer = document.getElementById('viewer');
+      viewer.innerHTML = pages.map(page => levels.map(level => renderPanel(page.key, level.key)).join('')).join('');
+    }
+
+    let currentPage = 'overview';
+    let currentLevel = 'l1';
+
+    function animatePanel(panel) {
+      if (!panel) return;
+      panel.classList.remove('animate');
+      panel.querySelectorAll('.stagger').forEach((el, index) => {
+        el.style.transitionDelay = `${index * 80}ms`;
+      });
+
+      panel.querySelectorAll('.countup').forEach(el => {
+        el.textContent = '0' + (el.dataset.suffix || '');
+      });
+      panel.querySelectorAll('.width-anim').forEach(el => { el.style.width = '0'; });
+      panel.querySelectorAll('.vertical-anim').forEach(el => { el.style.height = '0'; el.style.background = `linear-gradient(180deg, rgba(255,255,255,.16), transparent 18%), ${el.style.getPropertyValue('--bar') || getComputedStyle(el).getPropertyValue('--bar') || 'var(--bar)'}`; });
+      panel.querySelectorAll('.donut-seg').forEach(seg => {
+        const circ = Number(seg.dataset.circ || 314);
+        seg.style.strokeDasharray = `0 ${circ}`;
+      });
+
+      requestAnimationFrame(() => {
+        panel.classList.add('animate');
+        panel.querySelectorAll('.countup').forEach((el, index) => animateCount(el, index * 80));
+        panel.querySelectorAll('.width-anim').forEach((el, index) => setTimeout(() => { el.style.width = el.dataset.width; }, index * 80));
+        panel.querySelectorAll('.usage-bar > span').forEach((el, index) => setTimeout(() => { el.style.width = el.dataset.width; }, index * 80));
+        panel.querySelectorAll('.vertical-anim').forEach((el, index) => setTimeout(() => { el.style.height = el.dataset.height; }, index * 80));
+        panel.querySelectorAll('.donut-seg').forEach((seg, index) => {
+          const circ = Number(seg.dataset.circ || 314);
+          const percent = Number(seg.dataset.percent || 0);
+          setTimeout(() => {
+            seg.style.strokeDasharray = `${(percent / 100) * circ} ${circ}`;
+          }, index * 80);
+        });
+      });
+    }
+
+    function animateCount(el, delay) {
+      const target = Number(el.dataset.count || 0);
+      const decimals = Number(el.dataset.decimals || (String(target).includes('.') ? String(target).split('.')[1].length : 0));
+      const prefix = el.dataset.prefix || '';
+      const suffix = el.dataset.suffix || '';
+      const duration = 1000;
+      setTimeout(() => {
+        const start = performance.now();
+        function frame(now) {
+          const t = Math.min(1, (now - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          const value = target * eased;
+          el.textContent = `${prefix}${value.toFixed(decimals)}${suffix}`;
+          if (t < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }, delay);
+    }
+
+    function show(page, level) {
+      currentPage = page;
+      currentLevel = level;
+      document.querySelectorAll('.proposal-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.page-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+      document.querySelectorAll('.level-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.level === level));
+      const panel = document.getElementById(`${page}-${level}`);
+      if (panel) {
+        panel.classList.add('active');
+        document.getElementById('viewer').scrollTop = 0;
+        animatePanel(panel);
+      }
+    }
+
+    buildTabs();
+    buildPanels();
+    show('overview', 'l1');
+    window.show = show;
+  </script>
+</body>
+</html>

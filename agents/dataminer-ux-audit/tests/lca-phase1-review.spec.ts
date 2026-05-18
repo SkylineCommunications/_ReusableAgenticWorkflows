@@ -390,167 +390,220 @@ async function runAuditChecks(page: Page): Promise<{ findings: AuditFinding[]; a
   return { findings, annotations };
 }
 
-// ── CSS/JS mockup improvements ────────────────────────────────────────────────
-
+// ── CSS/JS mockup improvements (frontend-design skill: "Precision Instrument") ─
+//
+// Aesthetic direction: PRECISION INSTRUMENT
+// This is operations software for engineers managing physical infrastructure.
+// Every design decision must communicate: authoritative, data-forward, unambiguous.
+//
+// Commitments (from frontend-design skill):
+//  1. ONE accent — #E65100 warm orange. Already the app's character. Own it fully.
+//     No purple, no blue, no competing hues. One colour = intentional language.
+//  2. Numbers are the hero. KPI values: largest, heaviest, tightest tracking.
+//     Labels recede. The number is the signal; the label is the footnote.
+//  3. Panels have mass. Deep shadow, no outline, no radius exaggeration.
+//     Weight comes from shadow depth, not decorative borders.
+//  4. Bar charts: ONE colour per chart — uniform bars show magnitude clearly.
+//     Colour variation in a bar chart is visual noise, not information.
+//  5. Pie charts: monochromatic warm family (same hue, varied lightness/saturation).
+//     Cohesive, not a random rainbow.
+//  6. Typography: explicit hierarchy — number >> label. Flat type = no hierarchy.
+//
 async function injectMockupImprovements(page: Page): Promise<void> {
-  // Pass A — CSS: targets the real DataMiner element names found via DOM inspection
+  const ACCENT = '#E65100';
+
+  // Pass A — CSS
   await page.addStyleTag({ content: `
-    /* ─────────────────────────────────────────────────────────────────────────
-       PANEL CARDS: rounded corners + subtle elevation
-       .component is the real outer wrapper for every dashboard widget.
-       ─────────────────────────────────────────────────────────────────────── */
+    /* PANELS: mass via shadow, no decorative chrome */
     .component {
-      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.40) !important;
       overflow: hidden !important;
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.10),
-                  0 4px 16px rgba(0,0,0,0.45) !important;
-    }
-    .component-body.component-content {
-      border-radius: 0 0 12px 12px !important;
     }
 
-    /* ─────────────────────────────────────────────────────────────────────────
-       PANEL HEADERS: coloured left accent bar + uppercase label
-       ─────────────────────────────────────────────────────────────────────── */
-    dma-db-component-header {
-      border-left: 3px solid #7C4DFF !important;
-      padding: 10px 14px 8px !important;
-      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+    /* KPI VALUES: unmissable — bold, tight, white */
+    dma-generic-state .value,
+    dma-generic-state [class*="value"],
+    dma-fit-text {
+      font-weight: 800 !important;
+      letter-spacing: -0.03em !important;
+      color: #FFFFFF !important;
     }
+
+    /* KPI LABELS: recede — small, muted, uppercase */
+    dma-generic-state .label,
+    dma-generic-state [class*="sub-label"],
+    dma-generic-state [class*="unit"],
+    dma-generic-state small {
+      font-size: 9px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.10em !important;
+      text-transform: uppercase !important;
+      opacity: 0.45 !important;
+    }
+
+    /* PANEL TITLES: confident, not dominant */
     dma-db-component-header .title,
     dma-db-component-header [class*="title"],
     dma-db-component-header span:not([class*="icon"]):not(i) {
-      font-size: 11px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.10em !important;
-      opacity: 0.70 !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.02em !important;
+      font-size: 12px !important;
     }
 
-    /* ─────────────────────────────────────────────────────────────────────────
-       TABLE HEADERS: structured, uppercase, visually separated
-       ─────────────────────────────────────────────────────────────────────── */
+    /* TABLE HEADERS: structural guide — muted, uppercase */
     [role="columnheader"], th {
+      opacity: 0.45 !important;
       font-size: 10px !important;
-      font-weight: 700 !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.06em !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.08em !important;
-      background: rgba(255,255,255,0.04) !important;
-      border-bottom: 2px solid rgba(124,77,255,0.35) !important;
     }
 
-    /* ─────────────────────────────────────────────────────────────────────────
-       TABLE ROWS: alternating subtle tint for scannability
-       ─────────────────────────────────────────────────────────────────────── */
-    [role="row"]:not([class*="header"]):nth-child(even) {
-      background: rgba(255,255,255,0.025) !important;
-    }
-
-    /* ─────────────────────────────────────────────────────────────────────────
-       BUTTONS: rounded corners + clear primary accent
-       ─────────────────────────────────────────────────────────────────────── */
-    dma-button button, button.dma-button, button {
-      border-radius: 6px !important;
-    }
-    dma-button[variant="primary"] button,
-    dma-button button.primary,
-    button[class*="primary"] {
-      background: #7C4DFF !important;
-      color: #fff !important;
+    /* BUTTONS: minimal rounding — a precision tool, not a consumer app */
+    dma-button button, button.dma-button {
+      border-radius: 3px !important;
     }
   ` });
 
-  // Pass B — JS: direct inline-style injection (bypasses Angular shadow DOM)
-  //            + aggressive colour improvements that CSS alone can't reach
-  await page.evaluate(() => {
-    // 1. Style every .component panel directly
+  // Pass B — JS (bypasses Angular encapsulation, handles SVG colour directly)
+  await page.evaluate((accent: string) => {
+    // 1. Panel shadow — direct override
     document.querySelectorAll('.component').forEach((el: any) => {
-      el.style.setProperty('border-radius', '12px', 'important');
-      el.style.setProperty('overflow', 'hidden', 'important');
       el.style.setProperty('box-shadow',
-        '0 0 0 1px rgba(255,255,255,0.10), 0 4px 16px rgba(0,0,0,0.45)', 'important');
+        '0 8px 32px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.40)', 'important');
+      el.style.setProperty('overflow', 'hidden', 'important');
     });
 
-    // 2. Panel header left accent
-    document.querySelectorAll('dma-db-component-header').forEach((el: any) => {
-      el.style.setProperty('border-left', '3px solid #7C4DFF', 'important');
-      el.style.setProperty('padding', '10px 14px 8px', 'important');
+    // 1b. KPI values — force white + bold on all large-font elements
+    //     DataMiner's Angular encapsulation means CSS selectors may not penetrate.
+    //     We apply via JS inline styles as a guaranteed override.
+    document.querySelectorAll('dma-generic-state, dma-state-v2').forEach((comp: any) => {
+      comp.querySelectorAll('*').forEach((el: any) => {
+        const cs = window.getComputedStyle(el);
+        const fs = parseFloat(cs.fontSize);
+        if (fs >= 20) {
+          // Big numbers — hero treatment
+          el.style.setProperty('color', '#FFFFFF', 'important');
+          el.style.setProperty('font-weight', '800', 'important');
+          el.style.setProperty('letter-spacing', '-0.03em', 'important');
+        } else if (fs >= 8 && fs <= 13) {
+          // Labels — recede
+          el.style.setProperty('color', 'rgba(255,255,255,0.45)', 'important');
+          el.style.setProperty('font-weight', '500', 'important');
+          el.style.setProperty('letter-spacing', '0.08em', 'important');
+          el.style.setProperty('text-transform', 'uppercase', 'important');
+        }
+      });
+    });
+    // Also hit dma-fit-text directly — pierce shadow DOM if present
+    document.querySelectorAll('dma-fit-text').forEach((el: any) => {
+      el.style.setProperty('color', '#FFFFFF', 'important');
+      el.style.setProperty('font-weight', '800', 'important');
+      // Check for shadow root (Angular ViewEncapsulation.ShadowDom)
+      const root = el.shadowRoot ?? el;
+      root.querySelectorAll('*').forEach((child: any) => {
+        child.style.setProperty('color', '#FFFFFF', 'important');
+        child.style.setProperty('font-weight', '800', 'important');
+      });
+    });
+    // Catch-all: walk the full DOM and force white on any large scaled text
+    // DataMiner applies CSS transform:scale to fit numbers — fontSize may read as small
+    // even though visually large. So target parent containers instead.
+    document.querySelectorAll('dma-generic-state, dma-state-v2, dma-state').forEach((comp: any) => {
+      // Force white on ALL text nodes in state/KPI components
+      const all = comp.querySelectorAll('*');
+      all.forEach((el: any) => {
+        // Skip icons
+        if (el.tagName.toLowerCase().startsWith('mat-icon') || el.classList.contains('icon')) return;
+        el.style.setProperty('color', '#FFFFFF', 'important');
+      });
+      // Find spans directly containing text (the scaled number) 
+      all.forEach((el: any) => {
+        const cs = window.getComputedStyle(el);
+        const fs = parseFloat(cs.fontSize);
+        if (fs >= 18) {
+          el.style.setProperty('font-weight', '800', 'important');
+          el.style.setProperty('letter-spacing', '-0.03em', 'important');
+        }
+      });
     });
 
-    // 3. Inject colored STATUS CHIPS — the highest-impact visual improvement.
-    //    Finds cells that contain a recognisable status word and wraps the text
-    //    in a colored badge span.
-    const STATUS_MAP: Record<string, { bg: string; fg: string }> = {
-      active:          { bg: '#1B5E20', fg: '#A5D6A7' },
-      online:          { bg: '#1B5E20', fg: '#A5D6A7' },
-      running:         { bg: '#1B5E20', fg: '#A5D6A7' },
-      ok:              { bg: '#1B5E20', fg: '#A5D6A7' },
-      success:         { bg: '#1B5E20', fg: '#A5D6A7' },
-      'in service':    { bg: '#1B5E20', fg: '#A5D6A7' },
-      error:           { bg: '#7F0000', fg: '#EF9A9A' },
-      critical:        { bg: '#7F0000', fg: '#EF9A9A' },
-      failed:          { bg: '#7F0000', fg: '#EF9A9A' },
-      warning:         { bg: '#E65100', fg: '#FFE0B2' },
-      major:           { bg: '#E65100', fg: '#FFE0B2' },
-      pending:         { bg: '#004D40', fg: '#80CBC4' },
-      waiting:         { bg: '#004D40', fg: '#80CBC4' },
-      inactive:        { bg: '#37474F', fg: '#B0BEC5' },
-      offline:         { bg: '#37474F', fg: '#B0BEC5' },
-      stopped:         { bg: '#37474F', fg: '#B0BEC5' },
-      idle:            { bg: '#37474F', fg: '#B0BEC5' },
-      'out of service':{ bg: '#37474F', fg: '#B0BEC5' },
+    // 2. Pie charts — monochromatic warm family (same hue, varied lightness)
+    //    Coherent palette = designed. Rainbow = default.
+    const PIE_FAMILY = ['#E65100', '#BF360C', '#FF8A50', '#FF6D00', '#FFAB40'];
+    let pi = 0;
+    document.querySelectorAll(
+      'dma-generic-pie-chart svg path, dma-pie-chart svg path'
+    ).forEach((p: any) => {
+      const fill = (p.getAttribute('fill') ?? '').toLowerCase();
+      if (!fill || fill === 'none' || fill === 'transparent'
+          || fill === '#fff' || fill === '#ffffff'
+          || fill === '#000' || fill === '#000000') return;
+      const c = PIE_FAMILY[pi++ % PIE_FAMILY.length];
+      p.setAttribute('fill', c);
+      (p as any).style.setProperty('fill', c, 'important');
+    });
+
+    // 3. Bar charts — ONE colour per chart, full accent saturation
+    //    Uniform bars make the height difference the only signal.
+    //    That is the correct signal for a bar chart.
+    document.querySelectorAll('dma-generic-bar-chart, dma-bar-chart').forEach((chart: any) => {
+      chart.querySelectorAll('svg rect, svg path').forEach((s: any) => {
+        const fill = (s.getAttribute('fill') ?? '').toLowerCase();
+        if (!fill || fill === 'none' || fill === 'transparent'
+            || fill === '#fff' || fill === '#ffffff'
+            || fill === '#000' || fill === '#000000') return;
+        s.setAttribute('fill', accent);
+        (s as any).style.setProperty('fill', accent, 'important');
+      });
+    });
+
+    // 4. Status chips — colour replaces plain text
+    //    Semantic colour system must be cross-solution consistent.
+    //    Square pill (border-radius: 3px) matches the precision instrument aesthetic.
+    const STATUS: Record<string, { bg: string; fg: string }> = {
+      'active':         { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'online':         { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'running':        { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'ok':             { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'success':        { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'in service':     { bg: 'rgba(27,94,32,0.85)',  fg: '#A5D6A7' },
+      'error':          { bg: 'rgba(127,0,0,0.85)',   fg: '#EF9A9A' },
+      'critical':       { bg: 'rgba(127,0,0,0.85)',   fg: '#EF9A9A' },
+      'failed':         { bg: 'rgba(127,0,0,0.85)',   fg: '#EF9A9A' },
+      'warning':        { bg: 'rgba(191,54,12,0.85)', fg: '#FFE0B2' },
+      'major':          { bg: 'rgba(191,54,12,0.85)', fg: '#FFE0B2' },
+      'pending':        { bg: 'rgba(0,77,64,0.85)',   fg: '#80CBC4' },
+      'waiting':        { bg: 'rgba(0,77,64,0.85)',   fg: '#80CBC4' },
+      'inactive':       { bg: 'rgba(55,71,79,0.85)',  fg: '#90A4AE' },
+      'offline':        { bg: 'rgba(55,71,79,0.85)',  fg: '#90A4AE' },
+      'stopped':        { bg: 'rgba(55,71,79,0.85)',  fg: '#90A4AE' },
+      'out of service': { bg: 'rgba(55,71,79,0.85)',  fg: '#90A4AE' },
     };
-    const STATUS_RE = new RegExp(`^(${Object.keys(STATUS_MAP).join('|')})$`, 'i');
-
+    const STATUS_RE = new RegExp(`^(${Object.keys(STATUS).join('|')})$`, 'i');
     document.querySelectorAll('[role="row"]:not([class*="header"])').forEach(row => {
       row.querySelectorAll('td,[role="cell"]').forEach((cell: any) => {
         const txt = (cell.textContent?.trim() ?? '');
-        const key = txt.toLowerCase();
-        if (!STATUS_RE.test(key) || cell.querySelector('.__ux-chip')) return;
-        const colors = STATUS_MAP[key] ?? STATUS_MAP[txt.split(/\s/)[0].toLowerCase()];
+        if (!STATUS_RE.test(txt.toLowerCase()) || cell.querySelector('.__ux-chip')) return;
+        const colors = STATUS[txt.toLowerCase()];
         if (!colors) return;
         const chip = document.createElement('span');
         chip.className = '__ux-chip';
         chip.textContent = txt;
         chip.style.cssText = [
           `background:${colors.bg}`, `color:${colors.fg}`,
-          'padding:2px 10px', 'border-radius:12px',
-          'font-size:11px', 'font-weight:700', 'letter-spacing:0.04em',
+          'padding:1px 9px', 'border-radius:3px',
+          'font-size:10px', 'font-weight:700',
+          'letter-spacing:0.05em', 'text-transform:uppercase',
           'display:inline-block', 'white-space:nowrap',
         ].join(';');
-        // Replace cell content with the chip
         cell.innerHTML = '';
         cell.appendChild(chip);
       });
     });
+  }, ACCENT);
 
-    // 4. Modern chart colour palette (vivid + readable)
-    const PALETTE = ['#1E88E5', '#43A047', '#FB8C00', '#8E24AA', '#00ACC1',
-                     '#E53935', '#3949AB', '#00897B', '#F4511E', '#039BE5'];
-    let pi = 0;
-    document.querySelectorAll(
-      'dma-generic-pie-chart svg path, dma-pie-chart svg path'
-    ).forEach((p: any) => {
-      const fill = (p.getAttribute('fill') ?? '').toLowerCase();
-      if (!fill || fill === 'none' || fill === 'transparent' || fill === '#fff' || fill === '#000') return;
-      const c = PALETTE[pi++ % PALETTE.length];
-      p.setAttribute('fill', c);
-      (p as any).style.setProperty('fill', c, 'important');
-    });
-    const BAR = ['#1565C0', '#2E7D32', '#E65100'];
-    let bi = 0;
-    document.querySelectorAll('dma-generic-bar-chart, dma-bar-chart').forEach((chart: any) => {
-      const c = BAR[bi++ % BAR.length];
-      chart.querySelectorAll('svg rect, svg path').forEach((s: any) => {
-        const fill = (s.getAttribute('fill') ?? '').toLowerCase();
-        if (!fill || fill === 'none' || fill === 'transparent' || fill.startsWith('rgba(255')) return;
-        s.setAttribute('fill', c);
-        (s as any).style.setProperty('fill', c, 'important');
-      });
-    });
-  });
-
-  await page.waitForTimeout(800); // CSS transitions
+  await page.waitForTimeout(1000);
 }
 
 // ── Executive summary (plain language, for the PO) ────────────────────────────
@@ -717,8 +770,15 @@ tr.warn td{background:#FFFDF0}
   const bSrc = b64(beforeShot);
   const afSrc = b64(afterShot);
   if (bSrc && afSrc) {
-    h += `<div class="section"><div class="sec-hdr"><h2>🎨 Before / After — CSS Mockup</h2><span style="font-size:11px;color:#90caf9;margin-left:auto">Improvements are browser-local CSS only — not production changes</span></div>`;
-    h += `<div class="sec-body"><p style="font-size:12px;color:#555;margin:0 0 10px">The "after" view shows how the page would look with the recommended improvements applied: rounded widget cards, header accent bar, structured table headers, colored status chips, and a modern chart palette.</p>`;
+    h += `<div class="section"><div class="sec-hdr"><h2>🎨 Before / After — Design Mockup</h2><span style="font-size:11px;color:#90caf9;margin-left:auto">CSS-injected in-browser · not a production change</span></div>`;
+    h += `<div class="sec-body">`;
+    h += `<div style="background:#F3F4F6;border-radius:6px;padding:12px 16px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#333">`;
+    h += `<strong>Design approach:</strong> The "after" view does not add new visual elements — it refines what is already there. `;
+    h += `Improvements: <b>colour cohesion</b> (chart palette harmonised to the app's warm orange/rose character), `;
+    h += `<b>typographic hierarchy</b> (KPI values more dominant, labels visually recede), `;
+    h += `<b>subtle depth</b> (shadow gives panels lift without adding outline chrome), and `;
+    h += `<b>status chips</b> where applicable (colour replaces plain text for instant status scanning). `;
+    h += `Layout, framework elements, and panel structure are unchanged.</div>`;
     h += `<div class="mockup-row">`;
     h += `<div class="mockup-side"><div class="mockup-label before">BEFORE — current state</div><img src="${bSrc}" alt="Before"></div>`;
     h += `<div class="divider"></div>`;
@@ -726,7 +786,25 @@ tr.warn td{background:#FFFDF0}
     h += `</div></div></div>`;
   }
 
-  // Section 4: Full findings table
+  // Section 4: Design Expert Analysis (plain language, designer perspective)
+  h += `<div class="section"><div class="sec-hdr" style="background:#0D3B66"><h2>🧠 Design Expert Analysis</h2><span style="font-size:11px;color:#90caf9;margin-left:auto">Beyond rule-checking — a designer's perspective</span></div><div class="sec-body">`;
+  h += `<p style="font-size:13px;color:#444;margin:0 0 14px">The rule checks above tell you what is <em>technically wrong</em>. This section tells you what a UX designer would say about the <em>experience</em>.</p>`;
+  const expertItems = [
+    { title: 'Colour is not a strategy — it is a default', body: 'The chart colours on this page appear to be the DataMiner default palette, not a deliberate choice. When colour has no meaning, it is noise. A designed colour system would assign each semantic category its own hue (facilities by type → warm rose family; by state → a single accent for "active" vs a muted tone for everything else). Every colour on screen should earn its place.' },
+    { title: 'Information hierarchy is flat', body: 'Every widget on this page has roughly the same visual weight — the pie charts, the bar charts, the KPI tiles, and the filter panel all compete equally for attention. A designed dashboard has a clear reading order: the most important information is immediately obvious (1–2 KPI numbers), secondary context follows (charts), detail is available on demand (tables and filters). A user landing on this page for the first time has no visual guide to where to look first.' },
+    { title: 'The KPI row is underselling its value', body: 'The bottom row of KPI tiles (710 / 6567 / 387 / 6180) contains the most actionable numbers on the page. Yet visually they are smaller and quieter than the charts above them. In a well-designed facilities dashboard, the KPI strip would be the hero — large numbers, clear labels that step back, and consistent sizing that makes comparison instant.' },
+    { title: 'Chart titles are descriptive but not helpful', body: '"Top 10 facilities with most used rack units (%)" is accurate but verbose. A designer would write "Highest Rack Utilisation" — a headline that communicates intent, not methodology. Shorter, more confident titles create a calmer, more professional feel.' },
+    { title: 'The right-side filter panel disrupts visual flow', body: 'The Facility Filter panel on the right edge sits at the same visual level as the main content. Filters are a secondary utility — they help users narrow data, but they are not data themselves. A designed layout would clearly differentiate primary content from utility panels, either through visual weight reduction or a collapsible drawer pattern.' },
+  ];
+  for (const item of expertItems) {
+    h += `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #f0f0f0">`;
+    h += `<div style="font-weight:700;font-size:13px;color:#1a1a2e;margin-bottom:4px">${item.title}</div>`;
+    h += `<div style="font-size:12px;line-height:1.7;color:#444">${item.body}</div>`;
+    h += `</div>`;
+  }
+  h += `</div></div>`;
+
+  // Section 5: Full findings table
   h += `<div class="section"><div class="sec-hdr"><h2>📋 Full Findings</h2></div><div class="sec-body">`;
   for (const cat of ['Style Guide', 'UX Expert', 'Accessibility']) {
     const catFindings = findings.filter(f => f.category === cat);
