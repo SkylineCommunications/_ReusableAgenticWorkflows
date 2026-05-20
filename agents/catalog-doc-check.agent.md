@@ -40,7 +40,7 @@ This README is distinct from:
    3. If still ambiguous, inspect the `manifest.yml` files and prefer the one with `type: Standard Solution` over `Custom Solution`, or the one with a populated `documentation_url`.
    4. If no `CatalogInformation/README.md` is found anywhere, report `[ERROR]` and stop.
 
-   If multiple Catalog items are found and none of the above rules disambiguates, validate all of them and produce one report block per item.
+   All subsequent validation steps apply to the selected file. If multiple Catalog items are found and none of the above rules disambiguates, validate all of them and produce one report block per item.
 
 2. **Validate the README** — apply all rules from the `catalog-documentation-standards` skill to the discovered file, section by section.
 
