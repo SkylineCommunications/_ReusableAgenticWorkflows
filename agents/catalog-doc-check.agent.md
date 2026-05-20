@@ -46,7 +46,8 @@ Validation rules use the following severity levels:
 5. **Check Prerequisites section** — if technical requirements exist, confirm that users can find the minimum DataMiner version — either stated inline using **both** Feature Release and Main Release version numbers, or via an explicit link to release notes or versioned documentation where those versions are documented.
 6. **Check Technical Reference section** — if detailed documentation exists externally, confirm it is linked rather than duplicated inline.
 7. **Review visuals** — verify included visuals are relevant, high quality, free from sensitive/irrelevant content, and within the 3-visual limit. GIFs must be at most 10 seconds.
-8. **Check for contact/support references** — verify no support contacts or email addresses appear in the documentation body.
+8. **Check image paths** — verify that image references use standard relative paths (`./Images/`), not DataMiner docs-system paths (`~/images/`).
+9. **Check for contact/support references** — verify no support contacts or email addresses appear in the documentation body.
 
 ## Validation Rules
 
@@ -72,6 +73,18 @@ Validation rules use the following severity levels:
 ### Technical Reference Section
 **[WARNING]** When included, SHOULD link to detailed external documentation using the `documentation_url` manifest field. MUST NOT duplicate content already available elsewhere or document UI details that change frequently.
 
+> **Important:** The "Technical Reference" rule applies to lengthy inline documentation such as API specs, configuration walkthroughs, or parameter lists. It does NOT justify removing compact, decision-relevant product information such as a supported equipment/connector list or a protocol compatibility table. A concise list of supported vendors, connectors, or protocols is valuable to Catalog users evaluating whether this solution fits their environment and MUST be preserved.
+
+### Visual Image Paths
+**[ERROR]** Image references MUST use standard relative paths (e.g., `./Images/filename.png`).
+
+The DataMiner docs-system path prefix `~/` (e.g., `~/images/filename.png`) is **not valid** in a Catalog README — it is interpreted only by the internal docs tooling on `docs.dataminer.services` and will result in broken images on `catalog.dataminer.services`.
+
+**When fixing broken `~/` paths in a PR:**
+- Replace the `~/images/` prefix with `./Images/`
+- **Do NOT remove image references** — fix the path, keep the image
+- Verify that the filename casing in the README matches the actual filename on disk (the `Images/` folder is case-sensitive on Linux-based hosting)
+
 ### Visuals
 **[WARNING]** When included, visuals SHOULD be stored in the `Images` folder, limited to a maximum of **3**, and be clear and high quality. GIFs SHOULD be at most **10 seconds** and focused on one specific feature.
 
@@ -89,7 +102,8 @@ Validation rules use the following severity levels:
 | Real-world, non-hypothetical Use Cases | Hypothetical or irrelevant scenarios |
 | DataMiner version inline (both FR and MR tracks) **or** explicit link to release notes in Prerequisites | Complex installation steps in Prerequisites |
 | Links to external documentation | Duplicating external documentation inline |
-| High-quality visuals (max 3, GIFs max 10 s) | Blurry, sensitive, or irrelevant visuals |
+| High-quality visuals (max 3, GIFs max 10 s) with correct relative paths (`./Images/`) | Visuals with `~/images/` doc-system paths — fix the path, do not remove the image |
+| Concise supported equipment/connector/protocol lists | Lengthy inline API specs or configuration walkthroughs |
 | DataMiner Support team link | Support contacts or email addresses |
 
 ## Common Issues and Solutions
@@ -100,6 +114,7 @@ Validation rules use the following severity levels:
 | About section missing | ERROR | Add an About section summarizing the item's value and the problems it solves |
 | Key Features section missing | ERROR | Add a Key Features section with up to 5 benefit-oriented, item-specific features |
 | Support or contact details in documentation | ERROR | Remove and direct users to the DataMiner Support team |
+| Image references use `~/images/` path prefix | ERROR | Replace `~/images/` with `./Images/` — do NOT remove the image, only fix the path; also verify filename casing matches the actual file |
 | Key Features section contains more than 5 items | WARNING | Trim to the 5 most differentiating features |
 | Key Features describe generic DataMiner capabilities | WARNING | Replace with features specific to this item |
 | About section contains excessive technical detail | WARNING | Move to Technical Reference and link out instead |
@@ -109,6 +124,7 @@ Validation rules use the following severity levels:
 | Version information not discoverable in Prerequisites | WARNING | Either state both Feature Release and Main Release version numbers inline, or add an explicit link to release notes or versioned documentation where users can find them |
 | Technical Reference missing when detailed docs exist | WARNING | Link to external documentation using the `documentation_url` manifest field |
 | Visuals missing | WARNING | Add up to 3 relevant, high-quality images or GIFs illustrating key features |
+| Too many visuals (more than 3) | WARNING | Remove excess image references (keep the most representative ones); do not remove images if the total is already ≤ 3 |
 | Visuals show sensitive or irrelevant data | WARNING | Blur sensitive data; hide irrelevant columns and close unnecessary panels |
 | GIF longer than 10 seconds | WARNING | Trim or re-record to focus on one feature or action |
 
