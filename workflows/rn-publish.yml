@@ -49,6 +49,8 @@ jobs:
             exit 1
           fi
 
+          PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
+
           # Fetch all release note draft comments (id + body)
           RN_COMMENTS_JSON=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq '[.[] | select(.body | test("## 📋 Release Note")) | {id: .id, body: .body}]')
@@ -157,7 +159,8 @@ jobs:
               --argjson breaking "$BREAKING_JSON" \
               --arg solution "$SOLUTION" \
               --argjson has_solution "$HAS_SOLUTION" \
-              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking}
+              --arg pr_url "$PR_URL" \
+              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, InternalComments: $pr_url}
                + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
 
             # Check for idempotency marker — if already published, update instead of creating a new entry
