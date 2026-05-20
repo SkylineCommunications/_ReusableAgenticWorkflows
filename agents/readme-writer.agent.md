@@ -56,6 +56,10 @@ After all files have been written, produce a summary of what was done:
 
 List every `README.md` that was in scope (all project roots + repository root), and indicate whether it was **Created** (did not exist before), **Updated** (existed and was modified), or **Unchanged** (existed and was already accurate).
 
+### Step 4 — Create Pull Request
+
+Create a pull request with all changed `README.md` files. **Add the `documentation` label** to the pull request.
+
 ---
 
 ## Constraints
