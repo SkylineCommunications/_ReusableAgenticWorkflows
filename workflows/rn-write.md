@@ -26,6 +26,9 @@ permissions:
 
 network: defaults
 
+imports:
+  - SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md
+
 safe-outputs:
   add-comment:
     max: 5
@@ -48,5 +51,3 @@ timeout-minutes: 10
 ---
 
 # Agentic Release Notes Writer
-
-{{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}
