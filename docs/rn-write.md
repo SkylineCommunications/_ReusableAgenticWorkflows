@@ -5,66 +5,113 @@
 **Automated release note entry written when a pull request is merged**
 
 The [RN Write workflow](../workflows/rn-write.md?plain=1)
-triggers when a pull request is closed. When the PR was merged it reads the
-diff and any linked issues, then posts one or more plain-language release note
-comments — written for a changelog audience (product owners, technical writers,
-end-users) rather than for PR reviewers. A separate comment is posted for each
-separate feature, fix, or behavior the PR delivers — grouping happens downstream in the release note document.
+triggers when a pull request is merged. It reads the diff and any linked issues,
+then posts one or more plain-language release note comments — written for a
+changelog audience (product owners, technical writers, end-users) rather than
+for PR reviewers. A separate comment is posted for each distinct feature, fix,
+or behavior the PR delivers — grouping happens downstream in the release note document.
 
 ## Installation
 
+### 1. Install the `gh aw` extension
+
 ```bash
-# Install the 'gh aw' extension
 gh extension install github/gh-aw
-
-# Add the workflow to your repository
-gh aw add-wizard SkylineCommunications/_ReusableAgenticWorkflows/rn-write
 ```
 
-This walks you through adding the workflow to your repository.
+### 2. Copy the workflow file
 
-## Configuration
+Copy [`workflows/rn-write.md`](../workflows/rn-write.md) into the `.github/workflows/` folder of the target repository. This is the only file that needs to be present in the repository — the agent instructions are loaded at runtime from this central `_ReusableAgenticWorkflows` repository (see [How the agent is loaded](#how-the-agent-is-loaded)).
 
-### Required Labels
+### 3. Compile the workflow
 
-The workflow adds and removes labels on PRs. These labels must exist in the repository before the workflow runs:
+Run the following command from inside the target repository:
 
 ```bash
-gh label create rn-proposal --color 0075ca --description "Release note draft ready for review"
-gh label create rn-request  --color e4e669 --description "Request (re)generation of a release note"
+gh aw compile .github/workflows/rn-write.md
 ```
+
+This generates the final `.github/workflows/rn-write.yml` GitHub Actions file that GitHub actually executes. Re-run this command whenever `rn-write.md` is updated.
+
+### 4. Create the `COPILOT_GITHUB_TOKEN` secret
+
+The `gh aw` engine requires a personal fine-grained access token with a Copilot license to run the AI agent.
+
+**Step 1 — Create the personal access token:**
+
+1. Go to **GitHub → Your profile → Settings → Developer settings → Personal access tokens → Fine-grained tokens**
+2. Click **Generate new token**
+3. Under **Permissions**, find **Copilot** and set it to **Read-only**
+4. Click **Generate token** and **copy the value immediately** — you cannot retrieve it later. If you lose it, you must regenerate the token and update the secret.
+
+**Step 2 — Add the token as a repository secret:**
+
+1. Go to the target repository → **Settings → Secrets and variables → Actions → Repository secrets**
+2. Click **New repository secret**
+3. Name: `COPILOT_GITHUB_TOKEN`
+4. Value: paste the token copied in Step 1
+5. Click **Add secret**
+
+### 5. Create the `rn-request` label
+
+The `rn-proposal` label is created automatically by the workflow the first time it runs. The `rn-request` label must be created manually in the repository:
+
+```bash
+gh label create rn-request --color e4e669 --description "Request (re)generation of a release note" --repo OWNER/REPO
+```
+
+Or via **GitHub → Repository → Issues → Labels → New label**.
+
+## How the agent is loaded
+
+The workflow file (`rn-write.md`) does not embed the agent instructions directly. Instead, it imports them at runtime via:
+
+```
+{{#runtime-import https://raw.githubusercontent.com/SkylineCommunications/_ReusableAgenticWorkflows/main/agents/rn-write.agent.md}}
+```
+
+This means any update to [`agents/rn-write.agent.md`](../agents/rn-write.agent.md) in this central repository is automatically picked up by **all** repositories running the workflow — no redeployment or recompilation required. Changes to agent behavior (writing style, output format, activation logic) can be rolled out org-wide by updating a single file.
+
+## Configuration reference
+
+### Required labels
+
+| Label         | Created by    | Purpose                                              |
+|---------------|---------------|------------------------------------------------------|
+| `rn-proposal` | Workflow (auto) | Signals that draft release note comments are posted and ready for human review |
+| `rn-request`  | Manual (once) | Triggers (re)generation of a release note on an already-merged PR |
 
 ### Secrets
 
 | Secret                 | Purpose                                              |
 |------------------------|------------------------------------------------------|
-| `COPILOT_GITHUB_TOKEN` | Required by the `gh aw` engine to run the Copilot-powered agent. The installer creates or reuses this automatically. |
+| `COPILOT_GITHUB_TOKEN` | Fine-grained PAT with Copilot read permission, required by the `gh aw` engine |
 
 ### Permissions
 
 | Permission      | Level   | Purpose                                           |
 |-----------------|---------|---------------------------------------------------|
-| `contents`      | `read`  | Check out nothing — permission required by engine |
+| `contents`      | `read`  | Required by the engine (no checkout performed)    |
 | `issues`        | `read`  | Read linked issues for context                    |
 | `pull-requests` | `read`  | Read PR diff and metadata                         |
 
-The `safe-outputs: add-comment`, `add-labels`, and `remove-labels` declarations authorize the engine to post comments and manage labels — no explicit write permission is required in the permissions block.
+The `safe-outputs` declarations (`add-comment`, `add-labels`, `remove-labels`) authorize the engine to post comments and manage labels — no explicit write permission is needed in the permissions block.
 
 ## What it does
 
 ### Activation
 
-The workflow triggers when:
+The workflow can be triggered in two ways:
 
-- A pull request is **closed** (the agent skips unmerged closures — see below)
-- The `rn-request` label is **added** to any merged PR (useful for backfilling release notes on already-closed PRs)
+**1. A pull request is merged**
+The workflow fires on the `closed` event. The agent checks whether the PR was actually merged (`merged == true`) and proceeds only if it was. Closing a PR without merging produces no output.
+
+**2. Adding the `rn-request` label to an already-merged PR**
+Adding `rn-request` to a PR that has already been merged and closed triggers the workflow and (re)generates the release note. This is useful for backfilling release notes or forcing a regeneration when the original output needs replacing.
+
+> ⚠️ **Adding `rn-request` to an open PR does not trigger the workflow.** The activation guard requires `merged == true` — a PR that is still open does not satisfy this condition and the workflow will call `noop` immediately without generating anything.
 
 Bot PRs (`dependabot[bot]`, `github-actions[bot]`) are skipped automatically.
-
-It calls `noop` and stops when:
-
-- The PR was closed without merging
-- A label other than `rn-request` was added
 
 ### Release note generation
 
