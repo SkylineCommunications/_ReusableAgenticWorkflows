@@ -207,6 +207,8 @@ If any check fails, discard that comment and rewrite it before posting.
 
 Then apply the `rn-proposal` label and remove the `rn-request` label from the PR to signal that the drafts are ready for human review before publishing.
 
+Before applying `rn-proposal`, ensure the label exists in the repository. Use `get-label` to check; if it returns a 404, create it first using `create-label` with color `fbca04` and description `Release note draft ready for human review before publishing`. Similarly, before removing `rn-request`, verify it exists — if it does not, skip the removal step silently rather than erroring.
+
 ## Linked Issue Guidance
 
 When a PR references linked issues (look for "Fixes #", "Closes #", "Resolves #", or "Related Issue(s)" sections):
