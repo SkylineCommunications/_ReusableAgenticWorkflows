@@ -141,7 +141,9 @@ jobs:
                   /^[[:space:]]*$/ { if (!started) next; print; next }
                   { started=1; print }
                 ' \
-              | head -c 4000)
+              | head -c 4000 \
+              | pandoc -f gfm -t html --wrap=none)
+            echo "::debug::Converted description HTML: $DESCRIPTION"
 
             if [ -z "$DESCRIPTION" ]; then
               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
