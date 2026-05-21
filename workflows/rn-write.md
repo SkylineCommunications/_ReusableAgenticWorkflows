@@ -10,14 +10,17 @@ description: |
 on:
   pull_request_target:
     types: [closed, labeled]
-    paths-ignore:
-      - '.github/workflows/**'
   skip-bots: ["dependabot[bot]", "github-actions[bot]"]
   reaction: eyes
 
-if: 
-    github.event.action != 'labeled' || github.event.label.name == 'rn-request' &&
-    github.event.pull_request.head.repo.owner.login == github.repository_owner
+checkout: false
+
+if: >
+    github.event.pull_request.head.repo.owner.login == github.repository_owner &&
+    (
+      (github.event.action == 'closed' && github.event.pull_request.merged == true) ||
+      (github.event.action == 'labeled' && github.event.label.name == 'rn-request' && github.event.pull_request.merged == true)
+    )
 
 permissions:
   contents: read
@@ -42,11 +45,9 @@ tools:
   web-fetch:
   github:
     toolsets: [pull_requests, issues]
-    min-integrity: none # This workflow is allowed to examine and comment on any issues
 
 timeout-minutes: 10
 ---
 
 # Agentic Release Notes Writer
-
-{{#import SkylineCommunications/_ReusableAgenticWorkflows/agents/rn-write.agent.md}}
+{{#runtime-import https://raw.githubusercontent.com/SkylineCommunications/_ReusableAgenticWorkflows/main/agents/rn-write.agent.md}}
