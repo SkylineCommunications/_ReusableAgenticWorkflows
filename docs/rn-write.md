@@ -41,7 +41,7 @@ The `gh aw` engine requires a personal fine-grained access token with a Copilot 
 
 1. Go to **GitHub → Your profile → Settings → Developer settings → Personal access tokens → Fine-grained tokens**
 2. Click **Generate new token**
-3. Under **Permissions**, find **Copilot** and set it to **Read-only**
+3. Under **Permissions**, find **Copilot Requests** and set it to **Read-only**
 4. Click **Generate token** and **copy the value immediately** — you cannot retrieve it later. If you lose it, you must regenerate the token and update the secret.
 
 **Step 2 — Add the token as a repository secret:**
@@ -57,7 +57,7 @@ The `gh aw` engine requires a personal fine-grained access token with a Copilot 
 The `rn-proposal` label is created automatically by the workflow the first time it runs. The `rn-request` label must be created manually in the repository:
 
 ```bash
-gh label create rn-request --color e4e669 --description "Request (re)generation of a release note" --repo OWNER/REPO
+gh label create rn-request --color e4e669 --description "Request (re)generation of a release note"
 ```
 
 Or via **GitHub → Repository → Issues → Labels → New label**.
