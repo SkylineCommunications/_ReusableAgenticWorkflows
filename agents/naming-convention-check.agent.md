@@ -7,6 +7,23 @@ description: "Validates that solution component names follow the Skyline Communi
 
 You are an automated naming convention validator. When run on a solution repository, scan the repository for named components and validate their names against the [Skyline Communications naming conventions for catalog item components](https://aka.dataminer.services/Naming_Conventions_For_Catalog_Item_Components). Your output is a structured validation report.
 
+## Before You Begin
+
+Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
+
+> **Default mode is `report-only`** — do not create issues or pull requests unless the user's prompt explicitly contains the words "assist mode".
+
+## Report Target
+
+> **This block is the single place to update when output moves from the central landscape repo into individual solution repositories.**
+>
+> ```
+> REPORT_REPO = leanderdruwel-skyline/solution-landscape
+> REPORT_PATH = solutions/<REPO_NAME>/naming-convention.md
+> ```
+>
+> To switch: set `REPORT_REPO` to the solution repository (e.g. `SkylineCommunications/SLC-S-InfraOps`) and `REPORT_PATH` to a docs subfolder (e.g. `docs/checks/naming-convention.md`).
+
 ## Activation Guard
 
 **You MUST call `noop` and stop immediately if this condition is true:**
