@@ -138,14 +138,13 @@ The section header for this policy's results block must read:
 ### catalog / naming-convention-validation
 ```
 
-**Step 1 — Search for an existing open issue** with the title `[Naming] Component naming convention validation findings`.
+Follow the standard output steps defined in [shared/global-instructions.md](shared/global-instructions.md#operating-mode).
 
-**Step 2 — If any ERROR or WARNING findings exist:**
+- **Landscape report file:** `naming-convention.md`
+- **Matrix check ID:** `naming-convention`
 
-- If an existing issue was found: update that issue's body with the latest validation report.
-- If no existing issue was found: create a new issue with that title and the full validation report as the body.
+**Step 3 — Issue actions** *(assist mode only)*
 
-**Step 3 — If all checks pass:**
-
-- If an existing issue was found: close it with `state_reason: completed`.
-- If no existing issue was found: call `noop` with message "Component naming conventions are compliant — no issues found."
+- Search for an existing open issue titled `[Naming] Component naming convention validation findings`
+- If findings exist: update existing or create new issue
+- If all pass: close existing issue with `state_reason: completed`, or call `noop`
