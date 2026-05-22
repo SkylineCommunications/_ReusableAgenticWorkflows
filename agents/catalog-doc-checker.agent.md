@@ -15,6 +15,23 @@ Load and apply the `catalog-documentation-standards` skill now. It is the sole s
 
 Do not invent or apply any catalog documentation rules that are not defined in the `catalog-documentation-standards` skill.
 
+## Before You Begin
+
+Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
+
+> **Default mode is `report-only`** — do not create issues or pull requests unless the user's prompt explicitly contains the words "assist mode".
+
+## Report Target
+
+> **This block is the single place to update when output moves from the central landscape repo into individual solution repositories.**
+>
+> ```
+> REPORT_REPO = leanderdruwel-skyline/solution-landscape
+> REPORT_PATH = solutions/<REPO_NAME>/catalog-doc.md
+> ```
+>
+> To switch: set `REPORT_REPO` to the solution repository (e.g. `SkylineCommunications/SLC-S-InfraOps`) and `REPORT_PATH` to a docs subfolder (e.g. `docs/checks/catalog-doc.md`).
+
 ## Activation Guard
 
 **You MUST call `noop` and stop immediately if this condition is true:**
