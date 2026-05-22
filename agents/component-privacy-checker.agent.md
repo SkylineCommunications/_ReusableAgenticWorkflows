@@ -10,8 +10,11 @@ You are an automated catalog privacy validator. When run on a solution repositor
 
 ## Reference Documentation
 
-This checker validates against the official Skyline catalog item documentation guidelines:
-- [Best Practices When Documenting Catalog Items](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Best_Practices_When_Documenting_Catalog_Items.html)
+This checker validates that sub-component manifests are marked private so they do not appear as standalone Catalog items. The manifest format (including registration options) is described in:
+- [Registering a Catalog Item — Manifest file](https://docs.dataminer.services/dataminer/dataminer_services/Catalog/Register_Catalog_Item.html#manifest-file)
+- [Best Practices When Creating Catalog Items](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Best_Practices_When_Creating_Catalog_Items.html)
+
+> Note: the specific egistrationOptions.isHidden: true\ field is a CI/CD pipeline convention. No dedicated public documentation page exists for it yet.
 
 ## Activation Guard
 
