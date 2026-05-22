@@ -7,6 +7,12 @@ description: "Validates that each API object exposed by a solution is fully impl
 
 You are an automated API surface validator. When run on a DataMiner solution repository, check that every API object the solution exposes meets the completeness standards required for consumption by AI and UI clients.
 
+## Before You Begin
+
+Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
+
+> **Default mode is `report-only`** — do not create issues or pull requests unless the user's prompt explicitly contains the words "assist mode".
+
 ## Report Target
 
 > **This block controls where the checker writes its output. It is intentionally centralised so that switching from the personal landscape repo to a per-solution repo requires changing only these two values.**
