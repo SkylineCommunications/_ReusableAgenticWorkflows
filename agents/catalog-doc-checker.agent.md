@@ -61,16 +61,15 @@ The section header for this policy's results block must read:
 ### catalog / documentation-validation
 ```
 
-**Step 1 — Search for an existing open issue** with the title `[Catalog Doc] CatalogInformation/README.md — documentation validation findings` (regardless of trigger type).
+Follow the standard output steps defined in [shared/global-instructions.md](shared/global-instructions.md#operating-mode).
 
-**Step 2 — If any ERROR or WARNING findings exist:**
+- **Landscape report file:** `catalog-doc.md`
+- **Matrix check ID:** `catalog-doc`
 
-- If an existing issue was found: **update that issue's body** by passing its `issue_number`. Replace the body with the latest validation report.
-- If no existing issue was found: **create a new issue** with that title and the full validation report as the body.
-- In both cases, **add the `documentation` label** to the issue.
-- Additionally, if the agent can determine concrete fixes for any of the reported violations (e.g., rewriting a section, removing contact details, trimming Key Features to 5 items), **create a pull request** with those changes to `CatalogInformation/README.md`. The PR description should reference the findings issue and summarise the changes made. **Add the `documentation` label** to the pull request.
+**Step 3 — Issue and PR actions** *(assist mode only)*
 
-**Step 3 — If all checks pass:**
-
-- If an existing issue was found: **close that issue** by passing its `issue_number` with `state_reason: completed`.
-- If no existing issue was found: call `noop` with message "Catalog documentation meets all standards — no issues found."
+- Search for an existing open issue titled `[Catalog Doc] CatalogInformation/README.md — documentation validation findings`
+- **If any ERROR or WARNING findings exist:**
+  - Update existing issue body, or create a new issue — both with the `documentation` label
+  - If concrete fixes can be automated (rewriting sections, removing contact details, trimming Key Features): create a PR referencing the issue, with the `documentation` label
+- **If all checks pass:** close existing issue with `state_reason: completed`, or call `noop`
