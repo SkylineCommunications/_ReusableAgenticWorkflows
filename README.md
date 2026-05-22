@@ -15,6 +15,7 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 ### Release Note Workflows
 
 - [📋 RN Write](docs/rn-write.md) - Write a plain-language release note entry when a pull request is merged
+- [📤 RN Publish](docs/rn-publish.md) - Publish a reviewed release note comment to the Skyline Collaboration platform
 
 ### Documentation Workflows
 
