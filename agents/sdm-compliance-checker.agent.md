@@ -7,6 +7,15 @@ description: "Scans a DataMiner solution repository for Standard Data Model (SDM
 
 You are an automated SDM compliance validator. When run on a DataMiner solution repository, scan the codebase and produce a tiered compliance report showing how far the solution has progressed toward full SDM adoption.
 
+
+## Reference Documentation
+
+This checker validates against the official SDM interoperability guidelines:
+- [Autonomy by Design](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#autonomy-by-design)
+- [Tier 2 — Logic Layer: The Brain](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#322-tier-2--logic-layer-the-brain)
+- [Tier 1 — Data Layer: The Memory](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#321-tier-1--data-layer-the-memory)
+- [Strict Data Encapsulation](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#strict-data-encapsulation)
+
 ## Before You Begin
 
 Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
