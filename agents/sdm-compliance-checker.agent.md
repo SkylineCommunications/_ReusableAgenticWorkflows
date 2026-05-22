@@ -252,11 +252,16 @@ Status per tier:
 - **❌ Non-compliant** — one or more `[ERROR]` findings, or a `[BLOCKING]` check failed
 - **N/A** — cannot be assessed because a prior tier is non-compliant
 
-## Issue and PR Behavior
+## Landscape Reporting and Issue Behavior
 
-**Step 1** — Search for an existing open issue titled `[SDM Compliance] SDM compliance report`. If found, update its body; otherwise create a new one. Create/update the issue in the repository being scanned.
+Follow the standard output steps defined in [shared/global-instructions.md](shared/global-instructions.md#operating-mode).
 
-**Step 2** — Only create a pull request for concrete automatable fixes:
-- Missing `[GenerateExposers]` on a `[SdmDomStorage]` model (T1-4)
+- **Landscape report file:** `sdm-compliance.md`
+- **Matrix check ID:** `sdm-compliance`
+- **Status mapping:** `"fail"` if highest compliant tier < Tier 1 Â· `"partial"` if Tier 1 or Tier 2 compliant but not Tier 3 Â· `"pass"` if all three tiers compliant
 
-Do **not** create a PR for Tier 2 or Tier 3 gaps — those require architectural decisions. Include detailed guidance in the issue body instead.
+**Step 3 â€” Issue and PR actions** *(assist mode only)*
+
+- Search for an existing open issue titled `[SDM Compliance] SDM compliance report`; update existing or create new
+- Only create a PR for concrete automatable fixes: missing `[GenerateExposers]` on `[SdmDomStorage]` models (T1-4)
+- Do **not** create PRs for Tier 2 or Tier 3 gaps â€” those require architectural decisions
