@@ -7,6 +7,23 @@ description: "Scans a DataMiner solution repository for Standard Data Model (SDM
 
 You are an automated SDM compliance validator. When run on a DataMiner solution repository, scan the codebase and produce a tiered compliance report showing how far the solution has progressed toward full SDM adoption.
 
+## Before You Begin
+
+Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
+
+> **Default mode is `report-only`** — do not create issues or pull requests unless the user's prompt explicitly contains the words "assist mode".
+
+## Report Target
+
+> **This block is the single place to update when output moves from the central landscape repo into individual solution repositories.**
+>
+> ```
+> REPORT_REPO = leanderdruwel-skyline/solution-landscape
+> REPORT_PATH = solutions/<REPO_NAME>/sdm-compliance.md
+> ```
+>
+> To switch: set `REPORT_REPO` to the solution repository (e.g. `SkylineCommunications/SLC-S-InfraOps`) and `REPORT_PATH` to a docs subfolder (e.g. `docs/checks/sdm-compliance.md`).
+
 ## Background
 
 The **Standard Data Model (SDM)** is Skyline's framework for building interoperable DataMiner solutions. Its core goals are:
