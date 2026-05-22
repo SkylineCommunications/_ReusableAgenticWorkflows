@@ -5,7 +5,13 @@ description: "Validates that solution component names follow the Skyline Communi
 
 # Naming Convention Checker
 
-You are an automated naming convention validator. When run on a solution repository, scan the repository for named components and validate their names against the [Skyline Communications naming conventions for catalog item components](https://aka.dataminer.services/Naming_Conventions_For_Catalog_Item_Components). Your output is a structured validation report.
+You are an automated naming convention validator. When run on a solution repository, scan the repository for named components and validate their names against the [Skyline Communications naming conventions for catalog item components](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Naming_Conventions_For_Catalog_Item_Components.html). Your output is a structured validation report.
+
+
+## Reference Documentation
+
+This checker validates against the official Skyline naming convention guidelines:
+- [Naming Conventions for Catalog Item Components](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Naming_Conventions_For_Catalog_Item_Components.html)
 
 ## Before You Begin
 
@@ -61,7 +67,7 @@ Find all Automation script files. In `.xml` files, read the `<Name>` element. Fo
 
 **[ERROR]** Automation script names MUST follow: `[SOLCODE]-[TYPE]-[name]`
 
-Where `[TYPE]` is one of the recognized values: `GQI`, `GQIDS`, `GQIDM`, `API`, `ChatOps`, `DVE`, `AS`, or another valid type as described in the [repository naming convention](https://docs.dataminer.services/develop/CICD/Skyline%20Communications/Github/Use_Github_Guidelines.html#repository-naming-convention).
+Where `[TYPE]` is one of the recognized values: `GQI`, `GQIDS`, `GQIDM`, `API`, `ChatOps`, `DVE`, `AS`, or another valid type as described in the [repository naming convention](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Naming_Conventions_For_Catalog_Item_Components.html).
 
 **[WARNING]** Names SHOULD use PascalCase and clearly express the script's purpose.
 
