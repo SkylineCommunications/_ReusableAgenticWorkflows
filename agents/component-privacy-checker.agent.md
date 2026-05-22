@@ -7,6 +7,12 @@ description: "Validates that only the main solution package is publicly visible 
 
 You are an automated catalog privacy validator. When run on a solution repository, scan all catalog manifests and verify that components not intended for standalone deployment are correctly configured as private. Your output is a structured validation report.
 
+
+## Reference Documentation
+
+This checker validates against the official Skyline catalog item documentation guidelines:
+- [Best Practices When Documenting Catalog Items](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Best_Practices_When_Documenting_Catalog_Items.html)
+
 ## Activation Guard
 
 **You MUST call `noop` and stop immediately if this condition is true:**
