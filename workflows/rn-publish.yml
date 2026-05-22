@@ -51,6 +51,13 @@ jobs:
 
           PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
 
+          # Resolve the base branch and latest release tag for SolutionVersion (silently omitted if none found)
+          BASE_BRANCH=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json baseRefName --jq '.baseRefName')
+          SOLUTION_VERSION=$(gh api "repos/$REPO/releases" \
+            --jq '[.[] | select(.target_commitish == "'"$BASE_BRANCH"'" and .draft == false)] | first | .tag_name // empty' \
+            2>/dev/null || true)
+          if [ -n "$SOLUTION_VERSION" ]; then HAS_VERSION=true; else HAS_VERSION=false; fi
+
           # Fetch all release note draft comments (id + body)
           RN_COMMENTS_JSON=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq '[.[] | select(.body | test("## 📋 Release Note")) | {id: .id, body: .body}]')
@@ -161,9 +168,12 @@ jobs:
               --argjson breaking "$BREAKING_JSON" \
               --arg solution "$SOLUTION" \
               --argjson has_solution "$HAS_SOLUTION" \
+              --arg version "$SOLUTION_VERSION" \
+              --argjson has_version "$HAS_VERSION" \
               --arg pr_url "$PR_URL" \
               '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, InternalComments: $pr_url}
-               + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
+               + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)
+               + (if $has_version then {SolutionVersion: $version} else {} end)')
 
             # Check for idempotency marker — if already published, update instead of creating a new entry
             EXISTING_RN_ID=$(printf '%s' "$COMMENT_BODY" \
