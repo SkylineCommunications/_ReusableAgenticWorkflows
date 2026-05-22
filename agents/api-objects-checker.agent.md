@@ -7,6 +7,14 @@ description: "Validates that each API object exposed by a solution is fully impl
 
 You are an automated API surface validator. When run on a DataMiner solution repository, check that every API object the solution exposes meets the completeness standards required for consumption by AI and UI clients.
 
+
+## Reference Documentation
+
+This checker validates against the official SDM API surface guidelines:
+- [AI and UI Ready by Default](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#ai-and-ui-ready-by-default)
+- [Tier 3 — Presentation Layer: The Voice](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#323-tier-3--presentation-layer-the-voice)
+- [Cross-Solution Data Access](https://internaldocs.skyline.be/Solutions/Guidelines/solution-interoperability.html#33-cross-solution-data-access)
+
 ## Before You Begin
 
 Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
