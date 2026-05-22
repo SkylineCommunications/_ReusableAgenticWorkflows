@@ -160,18 +160,20 @@ jobs:
             fi
 
             if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
+            if [ "$TYPE" = "Bug Fix" ]; then SCOPE="Regression only"; else SCOPE="Functional"; fi
 
             PAYLOAD=$(jq -n \
               --arg title "$TITLE" \
               --arg desc "$DESCRIPTION" \
               --arg type "$TYPE" \
               --argjson breaking "$BREAKING_JSON" \
+              --arg scope "$SCOPE" \
               --arg solution "$SOLUTION" \
               --argjson has_solution "$HAS_SOLUTION" \
               --arg version "$SOLUTION_VERSION" \
               --argjson has_version "$HAS_VERSION" \
               --arg pr_url "$PR_URL" \
-              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, InternalComments: $pr_url}
+              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, Scope: $scope, InternalComments: $pr_url}
                + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)
                + (if $has_version then {SolutionVersion: $version} else {} end)')
 
