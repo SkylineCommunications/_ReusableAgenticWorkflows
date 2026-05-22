@@ -113,9 +113,10 @@ Commit the full validation report as Markdown to the solution landscape reposito
 1. Fetch `leanderdruwel-skyline/solution-landscape/matrix-data.json` and note its SHA
 2. Find the solution entry where `id == <REPO_NAME>`; if absent, add: `{"id": "<REPO_NAME>", "name": "<name>", "repo": "SkylineCommunications/<REPO_NAME>", "checks": {}}`
 3. Set `solutions[i].checks["<check-id>"]` â€” each agent defines its own `<check-id>`:
-   - `status`: `"fail"` if any `[ERROR]` findings Â· `"partial"` if only `[WARNING]` findings Â· `"pass"` if all checks pass
+   - `status`: `"fail"` if any `[ERROR]` findings · `"partial"` if only `[WARNING]` findings · `"pass"` if all checks pass
    - `note`: one-line summary of the key finding, or `"All checks passed"`
-   - `issueUrl`: issue URL if one was created (assist mode); omit otherwise
+   - `issueUrl`: URL of an open issue — from pre-run discovery (always) or newly created (assist mode). Omit if neither exists.
+   - `prUrl`: URL of an open PR — from pre-run discovery (always) or newly created (assist mode). Omit if neither exists.
    - `reportUrl`: `"https://github.com/leanderdruwel-skyline/solution-landscape/blob/main/solutions/<REPO_NAME>/<report-file>"`
    - `updatedAt`: today's date as `"YYYY-MM-DD"`
 4. Commit the updated JSON back using its SHA
