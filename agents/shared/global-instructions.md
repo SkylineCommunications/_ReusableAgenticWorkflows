@@ -77,7 +77,27 @@ All agents operate in one of two modes. **`report-only` is the default** unless 
 
 ### Standard output steps
 
-Every agent MUST follow this sequence at the end of every run. Steps 1 and 2 are always executed. Step 3 is conditional on mode.
+Every agent MUST follow this sequence at the end of every run. The pre-run discovery step and Steps 1 and 2 are always executed. Step 3 is conditional on mode.
+
+**Pre-run — Discover existing issues and PRs** *(always — both modes)*
+
+Before writing any output, search the solution repository for open issues and pull requests already linked to this check:
+
+1. Search open issues by the title keyword defined in this agent's Step 3 section (e.g. [Catalog Doc]):
+   `
+   GET /repos/<OWNER>/<REPO>/issues?state=open
+   `
+   Filter by title prefix. Record the URL of the first matching open issue as existingIssueUrl.
+
+2. Search open pull requests by the same title keyword:
+   `
+   GET /repos/<OWNER>/<REPO>/pulls?state=open
+   `
+   Filter by title prefix. Record the URL of the first matching open PR as existingPrUrl.
+
+3. Include any found URLs in the landscape report (under a **Linked issue / PR** heading) and carry them into Step 2 — they must be written to matrix-data.json regardless of operating mode.
+
+> This ensures the matrix always reflects the live state of the solution repository, not only what the current agent run created.
 
 **Step 1 â€” Write landscape report** *(always â€” both modes)*
 
