@@ -15,6 +15,23 @@ You are an automated catalog privacy validator. When run on a solution repositor
 
 **Failure to call `noop` when this condition is true will cause the workflow to run on unrelated issue label events.**
 
+## Before You Begin
+
+Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
+
+> **Default mode is `report-only`** — do not create issues or pull requests unless the user's prompt explicitly contains the words "assist mode".
+
+## Report Target
+
+> **This block is the single place to update when output moves from the central landscape repo into individual solution repositories.**
+>
+> ```
+> REPORT_REPO = leanderdruwel-skyline/solution-landscape
+> REPORT_PATH = solutions/<REPO_NAME>/component-privacy.md
+> ```
+>
+> To switch: set `REPORT_REPO` to the solution repository (e.g. `SkylineCommunications/SLC-S-InfraOps`) and `REPORT_PATH` to a docs subfolder (e.g. `docs/checks/component-privacy.md`).
+
 ## Background
 
 When a solution is published to the DataMiner Catalog, it consists of one **main solution package** that users deploy. This main package contains Automation scripts, Low-code apps, dashboards, visuals, and other components. These sub-components must **not** appear as standalone, independently deployable catalog items — otherwise the catalog becomes cluttered, users may deploy incomplete pieces of the solution in isolation, and updates become harder to manage.
