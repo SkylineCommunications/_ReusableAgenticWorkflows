@@ -15,6 +15,12 @@ Load and apply the `catalog-documentation-standards` skill now. It is the sole s
 
 Do not invent or apply any catalog documentation rules that are not defined in the `catalog-documentation-standards` skill.
 
+
+## Reference Documentation
+
+This checker validates against the official Skyline catalog documentation guidelines:
+- [Best Practices When Documenting Catalog Items](https://docs.dataminer.services/develop/best_practices/Catalog_Items/Best_Practices_When_Documenting_Catalog_Items.html)
+
 ## Before You Begin
 
 Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCommunications/_ReusableAgenticWorkflows`. All rules defined there — operating mode, severity levels, and output format — apply to this entire run.
