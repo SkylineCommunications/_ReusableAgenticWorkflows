@@ -48,7 +48,15 @@ Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCo
 
 ## Scope
 
-Validate the `CatalogInformation/README.md` for this repository's primary Catalog item — the documentation displayed on the Catalog item's page on dataminer.services. This file is **not necessarily at the repository root**; in multi-project solution repositories it is typically located at `{ProjectFolder}/CatalogInformation/README.md` where the project folder name matches the repository name.
+Validate the `CatalogInformation/README.md` for this repository's primary Catalog item — the documentation displayed on the Catalog item's page on dataminer.services.
+
+**Important: do not assume the path from the repository name.** The package folder name may differ from the repository name (e.g. repo `SLC-S-Service-Management` has its package folder at `SLC-Service-Management/`, not `SLC-S-Service-Management/`). Always discover the correct path:
+
+1. Fetch the repository root contents via the GitHub API
+2. For each subfolder, check if it contains a `CatalogInformation/` directory
+3. If multiple candidates exist, prefer the one whose name most closely matches the repository name (ignoring the `SLC-S-` prefix)
+4. Fall back to a root-level `CatalogInformation/` folder if no subfolder match is found
+5. If no `CatalogInformation/` folder is found at all, report `[ERROR]` — missing CatalogInformation folder
 
 This README is distinct from:
 
