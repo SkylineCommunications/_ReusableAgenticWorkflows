@@ -95,9 +95,11 @@ Before writing any output, search the solution repository for open issues and pu
    `
    Filter by title prefix. Record the URL of the first matching open PR as existingPrUrl.
 
-3. Include any found URLs in the landscape report (under a **Linked issue / PR** heading) and carry them into Step 2 — they must be written to matrix-data.json regardless of operating mode.
+3. **Verify any previously stored links are still valid.** Read the existing matrix entry for this solution/check from `leanderdruwel-skyline/solution-landscape/matrix-data.json`. If the stored `issueUrl` or `prUrl` is closed or merged, treat it as null — do not carry stale links forward. Only carry a link if it is currently open.
 
-> This ensures the matrix always reflects the live state of the solution repository, not only what the current agent run created.
+4. Include any found URLs in the landscape report (under a **Linked issue / PR** heading) and carry them into Step 2 — they must be written to matrix-data.json regardless of operating mode.
+
+> This ensures the matrix always reflects the live state of the solution repository. Links are verified on every run so stale closed/merged items are never left in the matrix.
 
 **Step 1 â€” Write landscape report** *(always â€” both modes)*
 
