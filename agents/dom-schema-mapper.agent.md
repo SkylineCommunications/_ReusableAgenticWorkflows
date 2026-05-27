@@ -90,6 +90,21 @@ Each `FieldDescriptor` in Layout B has:
 - `FieldType` — extract simple name from the .NET type string
 - `IsOptional`, `IsHidden`, `IsSoftDeleted`
 
+
+### Layout C — DOM.zip containing module.json (package SetupContent zip)
+
+Some solutions ship DOM definitions as a ZIP file. Look for files named DOM.zip:
+
+`
+GET /repos/{owner}/{repo}/git/trees/HEAD?recursive=1
+`
+
+Filter 	ree entries where path ends with DOM.zip. Download each ZIP, extract module.json from it, and parse using the same **Layout A** format (JSON array of module objects with ModuleSettings.ModuleId, DomDefinitions[], SectionDefinitions[]).
+
+Note: these files may be encoded with a **UTF-8 BOM** — decode using utf-8-sig rather than utf-8.
+
+> If both a DOM.zip and loose module.json exist in the same repository, process both and merge results under their module IDs.
+
 > If both layouts are found in the same repository, process both and merge results under their respective module IDs.
 
 ## Building the Output
