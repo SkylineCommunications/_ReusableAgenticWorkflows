@@ -16,6 +16,9 @@ jobs:
       github.event.pull_request.head.repo.owner.login == github.repository_owner
     runs-on: ubuntu-latest
     steps:
+      - name: Install pandoc
+        run: sudo apt-get install -y --no-install-recommends pandoc
+
       - name: Parse release note comment and publish to collaboration
         env:
           GH_TOKEN: ${{ github.token }}
