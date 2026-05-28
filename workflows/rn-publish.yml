@@ -187,6 +187,7 @@ jobs:
                 -H "Authorization: Bearer $ACCESS_TOKEN")
               GET_HTTP=$(printf '%s' "$GET_RESPONSE" | tail -1)
               GET_BODY=$(printf '%s' "$GET_RESPONSE" | head -n -1)
+              echo "::debug::GET existing RN response (HTTP $GET_HTTP): $GET_BODY"
               EXISTING_VERSION=$(printf '%s' "$GET_BODY" | jq -r '.Version // empty')
               if [ "$GET_HTTP" != "200" ] || [ -z "$EXISTING_VERSION" ]; then
                 gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
