@@ -1,11 +1,11 @@
 ---
 name: DOM Schema Mapper
-description: "Scans a DataMiner solution repository and produces a structured markdown catalogue of all DOM modules, definitions, section definitions, and fields."
+description: "Scans a DataMiner solution repository and produces a structured markdown catalogue of all DOM modules, definitions, section definitions, and fields that the solution accesses — based on DomHelper/DomCache calls in code, supplemented by install JSON for GUID-based access."
 ---
 
 # DOM Schema Mapper
 
-You are a documentation agent. When run on a DataMiner solution repository, discover all DOM modules and produce a human-readable catalogue of their schema.
+You are a documentation agent. When run on a DataMiner solution repository, map every DOM module the solution accesses and produce a human-readable catalogue of the schema.
 
 ## Before You Begin
 
@@ -24,129 +24,108 @@ Fetch and read `agents/shared/global-instructions.md` from `SkylineCommunication
 
 ## Background
 
-In DataMiner solutions, DOM (DataMiner Object Model) has two distinct layers:
+DOM (DataMiner Object Model) has two layers:
 
 **1 — Schema definition (install-time)**
-The DOM schema is defined in JSON files that are deployed when the package installs. These files declare the modules, definitions, section definitions, and field descriptors — including their fixed GUIDs.
+JSON files deployed with the package define the modules, definitions, section definitions, and field descriptors — including their fixed GUIDs. These tell you what a solution *owns*.
 
 **2 — Runtime access (code)**
-At runtime, scripts and helpers access DOM through a `DomHelper` (or `DomCache` wrapper), initialised with a module ID:
+Scripts and helpers access DOM through a `DomHelper` (or `DomCache` wrapper), initialised with a module ID. Fields are accessed either by name or by GUID:
+
 ```csharp
+// module ID — tells you which module is accessed
 new DomHelper(engine.SendSLNetMessages, "(slc)fleet_ops")
-```
-Fields are accessed either **by name**:
-```csharp
+new DomCache(dms, "(slc)people_organizations")   // cross-solution access
+
+// by name — most common
 domCache.GetSectionDefinitionByName("Vehicle info")
 domCache.GetFieldDescriptorByName("Vehicle info", "VIN")
-```
-or **by GUID** (matching a fixed ID from the install JSON):
-```csharp
+
+// by GUID — resolve against install JSON to get names
 new FieldDescriptorID(new Guid("5a6733f0-9bfb-438d-bb8b-529b26e39e45"))
 ```
 
-**This agent reads the install-time JSON files** — they are the canonical source of the full schema. The code layer shows what is actively used, which is a separate concern.
+**This agent primarily scans code.** Code tells you what is actually accessed — including modules owned by other solutions. The install JSON is used only to resolve GUIDs to names.
 
-## Discovery — Finding DOM Files
+A solution can access DOM modules it does not install (cross-solution dependencies). These must be clearly distinguished in the output.
 
-Use the git tree API to find all files in the repository:
+## Step 1 — Collect all .cs files
+
+Use the git tree API to list all files, then filter for `.cs`:
 
 ```
 GET /repos/{owner}/{repo}/git/trees/HEAD?recursive=1
 ```
 
-Then check for these three storage patterns (a repo may use more than one):
+## Step 2 — Scan code for DOM access patterns
 
-| Pattern | What to look for | Format |
-|---------|-----------------|--------|
-| **A** — loose file | paths ending in `module.json` | JSON array of module objects |
-| **B** — per-folder | paths containing `/SetupContent/DOM/` | folder tree: `{moduleId}/`, `DomDefinitions/{guid}.json`, `SectionDefinitions/{guid}.json` |
-| **C** — zip | paths ending in `DOM.zip` | ZIP containing `module.json` in Layout A format; decode with `utf-8-sig` (BOM) |
+Read every `.cs` file and extract the following patterns:
 
-### Layout A / C — `module.json` structure
+| Pattern | What to extract |
+|---------|----------------|
+| `new DomHelper(..., "moduleId")` | module ID |
+| `new DomCache(..., "moduleId")` | module ID |
+| `GetSectionDefinitionByName("section")` | section name |
+| `GetFieldDescriptorByName("section", "field")` | section name + field name |
+| `new FieldDescriptorID(new Guid("guid"))` | field GUID → resolve via JSON |
+| `new SectionDefinitionID(new Guid("guid"))` | section GUID → resolve via JSON |
 
-```json
-[
-  {
-    "ModuleSettings": { "ModuleId": "(slc)fleet_ops" },
-    "DomDefinitions": [
-      { "Name": "Vehicles", "SectionDefinitionLinks": [ { "SectionDefinitionID": { "Id": "<guid>" } } ] }
-    ],
-    "SectionDefinitions": [
-      {
-        "Name": "Vehicle info",
-        "ID": { "Id": "<guid>" },
-        "FieldDescriptors": [
-          { "Name": "VIN", "FieldType": "System.String, ...", "IsOptional": false, "IsHidden": false, "IsSoftDeleted": false }
-        ]
-      }
-    ]
-  }
-]
-```
+Build a map of: **module ID → section names → field names**.
 
-### Layout B — per-folder structure
+## Step 3 — Collect install JSON (for GUID resolution)
 
-- `{moduleId}.json` → module settings (module ID)
-- `DomDefinitions/{guid}.json` → each has `Name` and `SectionDefinitionLinks[].SectionDefinitionID.Id`
-- `SectionDefinitions/{guid}.json` → each has `Name` and `FieldDescriptors.$values[]` with the same field shape as above
+If any GUIDs were found in step 2, or to enrich the output with field types, load the install JSON. Check for all three storage patterns:
 
-Resolve section GUIDs to names using the SectionDefinitions you have loaded.
+| Pattern | What to look for |
+|---------|----------------|
+| **A** — loose file | paths ending in `module.json` |
+| **B** — per-folder | paths containing `/SetupContent/DOM/` |
+| **C** — zip | paths ending in `DOM.zip` (contains `module.json`; decode with `utf-8-sig`) |
 
-### Field type normalisation
+Use the JSON to:
+- Resolve field/section GUIDs to names
+- Add field **types** (`System.String` → `String`, `System.Int32` → `Int32`, etc.) for fields found in code
+- Identify which module IDs the solution **installs** (vs only accesses from another solution)
 
-Strip the .NET assembly suffix and simplify:
-`System.String` → `String`, `System.Int32` → `Int32`, `System.Double` → `Double`, `System.Boolean` → `Boolean`, `System.DateTime` → `DateTime`, `System.Guid` → `Guid`
-For any other type use the last segment after the final `.`.
-
-Skip fields where `IsSoftDeleted: true`.
-
-## Output Format
+## Step 4 — Build the output
 
 ```markdown
 # DOM Schema — {REPO_NAME}
 **Generated**: {date}
 **Repository**: https://github.com/{owner}/{repo}
-**Modules found**: {N}
 
 ---
 
-## Module: `{moduleId}`
+## Module: `{moduleId}` _(owned / cross-solution reference)_
 
-> **Source**: `{file path}`
-
-### DOM Definitions
-
-| Definition | Sections linked |
-|------------|----------------|
-| {name} | {comma-separated section names} |
-
-### Section Definitions
+### Sections accessed
 
 #### `{Section name}`
 
-| Field | Type | Optional | Hidden |
-|-------|------|----------|--------|
-| {name} | {type} | ✅ / — | ✅ / — |
+| Field | Type | Notes |
+|-------|------|-------|
+| {name} | {type or —} | |
 
 ---
 ```
 
-Sort modules alphabetically. Sort section definitions alphabetically within each module.
+- Mark each module as **owned** (present in install JSON) or **cross-solution reference** (only found in code, installed by another solution)
+- Sort modules alphabetically; sort sections alphabetically within each module
+- If field type is not resolvable from JSON, leave as `—`
+- Include all sections accessed, even if no individual field names were captured (e.g. only `GetSectionDefinitionByName` was called)
 
-## Output Steps
-
-### Step 1 — Write report
+## Step 5 — Write report
 
 Commit the markdown to `{REPORT_REPO}` at `{REPORT_PATH}`. Fetch the file first to get its SHA if it already exists.
 
-### Step 2 — Update matrix
+## Step 6 — Update matrix
 
 In `matrix-data.json` in `leanderdruwel-skyline/solution-landscape`, set `results["dom-schema"]` for the solution:
 
 ```json
 {
   "status": "pass | partial | fail | unknown",
-  "summary": "{N} modules · {N} definitions · {N} section definitions · {N} fields",
+  "summary": "{N} modules ({N} owned, {N} referenced) · {N} sections · {N} fields",
   "checkedAt": "{ISO date}",
   "reportUrl": "https://github.com/{REPORT_REPO}/blob/main/{REPORT_PATH}",
   "issueUrl": null,
@@ -155,6 +134,6 @@ In `matrix-data.json` in `leanderdruwel-skyline/solution-landscape`, set `result
 ```
 
 - `pass` — modules found and fully documented
-- `partial` — some modules/definitions could not be fully parsed
-- `fail` — no DOM definitions found in a solution that is expected to have them
+- `partial` — some sections/fields could not be resolved (e.g. unresolved GUIDs)
+- `fail` — no DOM access found in a solution expected to use DOM
 - `unknown` — repository structure could not be determined
