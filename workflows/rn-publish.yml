@@ -185,7 +185,7 @@ jobs:
               | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 | tr -d '\r' || true)
 
             if [ -n "$EXISTING_RN_ID" ]; then
-              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id, Version: 0}')
+              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id, Version: 1}')
               RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 -H "Content-Type: application/json" \
