@@ -114,6 +114,35 @@ Use the JSON to:
 - If field type is not resolvable from JSON, leave as `—`
 - Include all sections accessed, even if no individual field names were captured (e.g. only `GetSectionDefinitionByName` was called)
 
+
+## Step 4b — Scan Low-Code Apps for direct DOM queries
+
+Low-code app packages (.zip files under **/PackageContent/LowCodeApps/) may contain GQI queries
+that access DOM storage directly from the UI, bypassing the solution API. These should be flagged.
+
+1. Find ZIP files matching **/PackageContent/LowCodeApps/*.zip
+2. Each outer ZIP contains a content.zip — extract it
+3. Parse App.config.json inside content.zip
+4. Walk DataPool[].Query nodes recursively:
+   - Data source level: Options[ID='Module'].Value → module ID
+   - Filter level: Options[ID='Object manager definition IDs'][].Value → definition GUID(s)
+5. Resolve definition GUIDs using dom_def_guid_map built from the install JSON
+   - **Important**: In Layout A/C module.json, DomDefinitions[].Id.Id is the GUID (key is Id, not ID)
+6. Collect all {query_name, module, definition_names} entries
+
+Include these in the report under a dedicated section:
+
+`markdown
+## Direct DOM access from Low-Code App
+
+> ⚠️ **These queries bypass the solution API and access DOM storage directly from the UI.**
+> This is discouraged — prefer reading data through UDAPI/GQI data sources exposed by the solution.
+
+| Query name | Module | DOM Definition |
+|------------|--------|---------------|
+| {name} | {module} | {definition} |
+`
+
 ## Step 5 — Write report
 
 Commit the markdown to `{REPORT_REPO}` at `{REPORT_PATH}`. Fetch the file first to get its SHA if it already exists.
