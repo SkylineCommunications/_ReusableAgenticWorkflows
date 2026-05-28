@@ -186,14 +186,15 @@ jobs:
 
             if [ -n "$EXISTING_RN_ID" ]; then
               # GET the current entry to retrieve its Version for optimistic concurrency
-              GET_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "https://api.skyline.be/api/ReleaseNotes/$EXISTING_RN_ID" \
+              GET_RESPONSE=$(curl -s -w "\n%{http_code}" \
+                "https://api.skyline.be/api/ReleaseNotes/ById?ids[0]=$EXISTING_RN_ID" \
                 -H "Authorization: Bearer $ACCESS_TOKEN")
               GET_HTTP=$(printf '%s' "$GET_RESPONSE" | tail -1)
               GET_BODY=$(printf '%s' "$GET_RESPONSE" | head -n -1)
-              EXISTING_VERSION=$(printf '%s' "$GET_BODY" | jq -r '.Version')
+              EXISTING_VERSION=$(printf '%s' "$GET_BODY" | jq -r '.[0].Version')
               if [ "$GET_HTTP" != "200" ] || [ -z "$EXISTING_VERSION" ] || [ "$EXISTING_VERSION" = "null" ]; then
                 gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
-                  -f body="❌ Release note #${ENTRY_NUM}: could not retrieve existing entry for update (HTTP $GET_HTTP): $(printf '%s' "$GET_BODY" | jq -r '.Message // .')"
+                  -f body="❌ Release note #${ENTRY_NUM}: could not retrieve existing entry for update (HTTP $GET_HTTP): $(printf '%s' "$GET_BODY" | jq -r '.[0].Message // .')"
                 ERRORS=$((ERRORS + 1))
                 continue
               fi
