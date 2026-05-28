@@ -67,10 +67,13 @@ Read every `.cs` file and extract the following patterns:
 | `new DomCache(..., "moduleId")` | module ID |
 | `GetSectionDefinitionByName("section")` | section name |
 | `GetFieldDescriptorByName("section", "field")` | section name + field name |
+| `GetFieldValue<T>(cache, record, "section", "field")` | section name + field name + **type from `T`** |
 | `new FieldDescriptorID(new Guid("guid"))` | field GUID → resolve via JSON |
 | `new SectionDefinitionID(new Guid("guid"))` | section GUID → resolve via JSON |
 
-Build a map of: **module ID → section names → field names**.
+> **Field types for cross-solution modules:** When a solution accesses another solution's DOM via `GetFieldValue<T>(...)`, the generic parameter `T` (e.g. `DateTime`, `String`, `Int64`) *is* the field's CLR type — no need to read the owning solution's install JSON.
+
+Build a map of: **module ID → section names → field names (with type where available)**.
 
 ## Step 3 — Collect install JSON (for GUID resolution)
 
