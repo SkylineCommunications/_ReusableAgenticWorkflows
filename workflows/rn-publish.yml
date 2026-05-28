@@ -186,7 +186,7 @@ jobs:
 
             if [ -n "$EXISTING_RN_ID" ]; then
               # GET the current entry to retrieve its Version for optimistic concurrency
-              GET_RESPONSE=$(curl -s -w "\n%{http_code}" \
+              GET_RESPONSE=$(curl -s -w "\n%{http_code}" --globoff \
                 "https://api.skyline.be/api/ReleaseNotes/ById?ids[0]=$EXISTING_RN_ID" \
                 -H "Authorization: Bearer $ACCESS_TOKEN")
               GET_HTTP=$(printf '%s' "$GET_RESPONSE" | tail -1)
