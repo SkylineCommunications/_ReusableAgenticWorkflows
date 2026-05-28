@@ -68,10 +68,15 @@ Read every `.cs` file and extract the following patterns:
 | `GetSectionDefinitionByName("section")` | section name |
 | `GetFieldDescriptorByName("section", "field")` | section name + field name |
 | `GetFieldValue<T>(cache, record, "section", "field")` | section name + field name + **type from `T`** |
+| `secDefVar = cache.GetSectionDefinitionByName("section")` | tracks secDefVar → (cache, section) |
+| `fdVar = secDefVar.GetFieldDescriptorByName("field")` | tracks fdVar → (secDefVar, field) |
+| `GetFieldValue<T>(secDefVar, fdVar)` | resolve chain → module/section/field/**type** |
 | `new FieldDescriptorID(new Guid("guid"))` | field GUID → resolve via JSON |
 | `new SectionDefinitionID(new Guid("guid"))` | section GUID → resolve via JSON |
 
-> **Field types for cross-solution modules:** When a solution accesses another solution's DOM via `GetFieldValue<T>(...)`, the generic parameter `T` (e.g. `DateTime`, `String`, `Int64`) *is* the field's CLR type — no need to read the owning solution's install JSON.
+> **Field types for cross-solution modules:** When a solution accesses another solution's DOM, the generic parameter `T` in any `GetFieldValue<T>(...)` call *is* the field's CLR type — no need to read the owning solution's install JSON.
+
+> **Section-definition variable chain:** Some code stores section and field descriptor objects in local variables and then calls the 2-arg `GetFieldValue<T>(sectionDefVar, fieldDescVar)` form on a DOM instance. Track these in two passes: (1) `secVar = cache.GetSectionDefinitionByName("sec")` — maps secVar to (cache → module, section), (2) `fdVar = secDef.GetFieldDescriptorByName("field")` — maps fdVar to field name. Then resolve `GetFieldValue<T>(secVar, fdVar)` through both maps.
 
 Build a map of: **module ID → section names → field names (with type where available)**.
 
