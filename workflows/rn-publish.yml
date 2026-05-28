@@ -182,7 +182,19 @@ jobs:
               | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 | tr -d '\r' || true)
 
             if [ -n "$EXISTING_RN_ID" ]; then
-              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
+              # Fetch current entry to get the version number required by the PATCH endpoint
+              GET_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET "https://api.skyline.be/api/ReleaseNotes/$EXISTING_RN_ID" \
+                -H "Authorization: Bearer $ACCESS_TOKEN")
+              GET_HTTP=$(printf '%s' "$GET_RESPONSE" | tail -1)
+              GET_BODY=$(printf '%s' "$GET_RESPONSE" | head -n -1)
+              EXISTING_VERSION=$(printf '%s' "$GET_BODY" | jq -r '.Version // empty')
+              if [ "$GET_HTTP" != "200" ] || [ -z "$EXISTING_VERSION" ]; then
+                gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                  -f body="❌ Release note #${ENTRY_NUM}: could not retrieve existing entry for update (HTTP $GET_HTTP): $(printf '%s' "$GET_BODY" | jq -r '.Message // .')"
+                ERRORS=$((ERRORS + 1))
+                continue
+              fi
+              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" --arg ver "$EXISTING_VERSION" '. + {ID: $id, Version: $ver}')
               RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 -H "Content-Type: application/json" \
