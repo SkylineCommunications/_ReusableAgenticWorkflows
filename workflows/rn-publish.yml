@@ -195,7 +195,7 @@ jobs:
                 ERRORS=$((ERRORS + 1))
                 continue
               fi
-              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" --arg ver "$EXISTING_VERSION" '. + {ID: $id, Version: $ver}')
+              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" --argjson ver "$EXISTING_VERSION" '. + {ID: $id, Version: $ver}')
               RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 -H "Content-Type: application/json" \
