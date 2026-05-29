@@ -80,6 +80,24 @@ Read every `.cs` file and extract the following patterns:
 
 Build a map of: **module ID → section names → field names (with type where available)**.
 
+### Scanner notes — variable→module resolution
+
+> **Use per-file scope.** Build a fresh `var → module` map for each `.cs` file. Never merge variable assignments across files — the same name (e.g. `domCache`) may refer to different modules in different files.
+
+**Variable→module resolution priority:**
+1. `var = new DomCache(..., "literal-module-id")` — direct literal match; most reliable.
+2. `var = new DomCache(..., ConstName)` — first scan the file for `const string ConstName = "..."` and substitute. Handles patterns like `private const string PeopleModuleID = "(slc)people_organizations"`.
+3. **Do NOT** include `DomCache paramName` method-parameter declarations unless the constructor call is visible in the same file. A typed parameter `void Foo(DomCache domCache)` tells you nothing about which module it holds — including it causes false attribution.
+
+**GetInstanceById / .Name access:**
+`GetInstanceById(guid).Name` reads the DOM instance's built-in `Name` property, not a field descriptor. It is valid DOM read access but has no section/field equivalent — note it as `(instance.Name)` in the report.
+
+**LCA Join branches:**
+When walking GQI query trees in LCA zips, recurse into `Join → Options[ID='On'].Value` — this sub-object is a raw `DMAGenericInterfaceQuery`, not a `DMAPrimitiveValue`. Access it directly and collect module/definition from the joined branch, then flag the query as a join with the joined module.
+
+**Unresolved cross-solution definition GUIDs:**
+If a definition GUID from an LCA query cannot be resolved (owning solution's install JSON not in the scanned repo), report it as `guid:{first-8-chars}…` and note it belongs to an external solution.
+
 ## Step 3 — Collect install JSON (for GUID resolution)
 
 If any GUIDs were found in step 2, or to enrich the output with field types, load the install JSON. Check for all three storage patterns:
