@@ -16,6 +16,10 @@ A collection of reusable [GitHub Agentic Workflows](https://github.github.io/gh-
 
 - [📋 RN Write](docs/rn-write.md) - Write a plain-language release note entry when a pull request is merged
 
+### Quality & Regression Workflows
+
+- [🔍 Version Bug RCA](docs/version-bug-rca.md) - Trace every bug fix in a release back to its introducing commit, determine the first affected version, identify recurring patterns, and produce a styled Word document report with optional GitHub issue creation for active similar patterns
+
 ### Documentation Workflows
 
 - [📝 Documentation Update Check](docs/doc-update-check.md) - Detect stale documentation after code changes and create issues for updates
