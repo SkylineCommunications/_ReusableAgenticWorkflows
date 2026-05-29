@@ -231,16 +231,69 @@ For each bug fix PR, find the commit that first introduced the defect.
 
 ---
 
+## Phase 8 — GitHub Issue Creation for Active Pattern Findings
+
+18. **For every active-pattern finding that is classified as "Confirmed active bug" or "Low risk"**, create a GitHub issue in the target repository. Do **not** create issues for findings classified "False positive" or "SAFE".
+
+    Use `gh issue create` with the following structure:
+
+    **Title format:**
+    ```
+    Low risk: <short description of pattern> in <FileName.cs>
+    ```
+    or for confirmed bugs:
+    ```
+    Bug: <short description> in <FileName.cs> line <N>
+    ```
+
+    **Label:** `bug`
+
+    **Body template:**
+    ```markdown
+    ## Active Pattern — <Pattern name>
+
+    **File:** `<relative path from repo root>`
+    **Line:** <N>
+
+    ### Current code
+    ```csharp
+    <verbatim current code lines>
+    ```
+
+    ### Problem
+    <2–5 sentences explaining why this is a risk or confirmed bug. Reference the confirmed bug it resembles, if any.>
+
+    This pattern was identified as part of the <version> regression analysis after a confirmed <pattern name> bug was fixed in <file where confirmed bug was fixed>.
+
+    ### Recommended fix
+    ```csharp
+    <verbatim suggested corrected code>
+    ```
+
+    ### Prevention
+    <One sentence stating the rule that prevents this class of bug.>
+    ```
+
+    After creating each issue, record its URL and number.
+
+19. **Report the created issues** in the console summary (see Output section).
+
+---
+
 ## Output
 
 On successful completion, report:
 
 ```
 Analysis complete.
-  Bug fix PRs analysed:   <N>
-  Unique introducing commits: <N>
+  Bug fix PRs analysed:     <N>
+  Unique introducing commits:  <N>
   Bugs traceable to predecessor repo: <N>
-  Active pattern findings: <N>
+  Active pattern findings:   <N>
+    - Confirmed active bugs:  <N>  → issues created
+    - Low risk:               <N>  → issues created
+    - False positives / SAFE: <N>  → no issue
+  GitHub issues created:     <list of #number: URL>
   Document written to: <output path>
   Paragraph count: <N>
 ```
