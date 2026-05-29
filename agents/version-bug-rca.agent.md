@@ -233,9 +233,32 @@ For each bug fix PR, find the commit that first introduced the defect.
 
 ## Phase 8 — GitHub Issue Creation for Active Pattern Findings
 
-18. **For every active-pattern finding that is classified as "Confirmed active bug" or "Low risk"**, create a GitHub issue in the target repository. Do **not** create issues for findings classified "False positive" or "SAFE".
+18. **Collect all active-pattern findings** that are classified as "Confirmed active bug" or "Low risk". Ignore findings classified as "SAFE" or "False positive" — these do not need issues.
 
-    Use `gh issue create` with the following structure:
+19. **Present the proposed issues to the user before creating anything.** Print a preview table to the console:
+
+    ```
+    ┌─────────────────────────────────────────────────────────────────────────────┐
+    │  Proposed GitHub issues  (repo: <owner/repo>)                               │
+    ├──────┬────────────────────────────────────────────────┬─────────────────────┤
+    │  #   │  Title                                         │  Severity           │
+    ├──────┼────────────────────────────────────────────────┼─────────────────────┤
+    │   1  │  Low risk: lazy LINQ .Select() passed to ...   │  LOW RISK           │
+    │   2  │  Bug: missing .ToList() before DeleteInBatches │  CONFIRMED          │
+    └──────┴────────────────────────────────────────────────┴─────────────────────┘
+
+    Create these <N> issue(s) in SkylineCommunications/SLC-S-MediaOps.Plan? [y/N]
+    ```
+
+    Wait for the user to type `y` (or `yes`) before proceeding. Any other input (including Enter with no input, `n`, `no`, or Ctrl+C) means **skip issue creation entirely** — do not create any issues and note this in the final summary.
+
+    > If the agent is running non-interactively (e.g. piped input, CI environment, or `--yes` flag was passed), skip the prompt and create the issues automatically. Detect non-interactive mode with:
+    > ```
+    > node -e "process.stdout.write(process.stdin.isTTY ? 'interactive' : 'non-interactive')"
+    > ```
+    > or equivalent shell test `[ -t 0 ]`.
+
+20. **If the user confirms**, create each issue using `gh issue create`:
 
     **Title format:**
     ```
@@ -274,9 +297,14 @@ For each bug fix PR, find the commit that first introduced the defect.
     <One sentence stating the rule that prevents this class of bug.>
     ```
 
-    After creating each issue, record its URL and number.
+    Print each created issue's URL as it is created:
+    ```
+    ✓ Created #484: https://github.com/.../issues/484
+    ```
 
-19. **Report the created issues** in the console summary (see Output section).
+    After all issues are created, record the full list of URLs.
+
+21. **Report the created (or skipped) issues** in the console summary (see Output section).
 
 ---
 
