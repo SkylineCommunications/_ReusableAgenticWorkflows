@@ -35,7 +35,7 @@ Scripts and helpers access DOM through a `DomHelper` (or `DomCache` wrapper), in
 ```csharp
 // module ID — tells you which module is accessed
 new DomHelper(engine.SendSLNetMessages, "(slc)fleet_ops")
-new DomCache(dms, "(slc)people_organizations")   // cross-solution access
+new DomCache(dms, "(slc)people_organizations")   // not installed here access
 
 // by name — most common
 domCache.GetSectionDefinitionByName("Vehicle info")
@@ -47,7 +47,7 @@ new FieldDescriptorID(new Guid("5a6733f0-9bfb-438d-bb8b-529b26e39e45"))
 
 **This agent primarily scans code.** Code tells you what is actually accessed — including modules owned by other solutions. The install JSON is used only to resolve GUIDs to names.
 
-A solution can access DOM modules it does not install (cross-solution dependencies). These must be clearly distinguished in the output.
+A solution can access DOM modules it does not install (not installed here dependencies). These must be clearly distinguished in the output.
 
 ## Step 1 — Collect all .cs files
 
@@ -76,7 +76,7 @@ Read every `.cs` file and extract the following patterns:
 | `new FieldDescriptorID(new Guid("guid"))` | field GUID → resolve via JSON |
 | `new SectionDefinitionID(new Guid("guid"))` | section GUID → resolve via JSON |
 
-> **Field types for cross-solution modules:** When a solution accesses another solution's DOM, the generic parameter `T` in any `GetFieldValue<T>(...)` call *is* the field's CLR type — no need to read the owning solution's install JSON.
+> **Field types for not installed here modules:** When a solution accesses another solution's DOM, the generic parameter `T` in any `GetFieldValue<T>(...)` call *is* the field's CLR type — no need to read the owning solution's install JSON.
 
 > **Section-definition variable chain:** Some code stores section and field descriptor objects in local variables and then calls the 2-arg `GetFieldValue<T>(sectionDefVar, fieldDescVar)` form on a DOM instance. Track these in two passes: (1) `secVar = cache.GetSectionDefinitionByName("sec")` — maps secVar to (cache → module, section), (2) `fdVar = secDef.GetFieldDescriptorByName("field")` — maps fdVar to field name. Then resolve `GetFieldValue<T>(secVar, fdVar)` through both maps.
 
@@ -97,7 +97,7 @@ Build a map of: **module ID → section names → field names (with type where a
 **LCA Join branches:**
 When walking GQI query trees in LCA zips, recurse into `Join → Options[ID='On'].Value` — this sub-object is a raw `DMAGenericInterfaceQuery`, not a `DMAPrimitiveValue`. Access it directly and collect module/definition from the joined branch, then flag the query as a join with the joined module.
 
-**Unresolved cross-solution definition GUIDs:**
+**Unresolved not installed here definition GUIDs:**
 If a definition GUID from an LCA query cannot be resolved (owning solution's install JSON not in the scanned repo), report it as `guid:{first-8-chars}…` and note it belongs to an external solution.
 
 ## Step 3 — Collect install JSON (for GUID resolution)
@@ -124,7 +124,7 @@ Use the JSON to:
 
 ---
 
-## Module: `{moduleId}` _(owned / cross-solution reference)_
+## Module: `{moduleId}` _(owned / not installed by this solution)_
 
 ### Sections accessed
 
@@ -137,7 +137,7 @@ Use the JSON to:
 ---
 ```
 
-- Mark each module as **owned** (present in install JSON) or **cross-solution reference** (only found in code, installed by another solution)
+- Mark each module as **owned** (present in install JSON) or **not installed by this solution** (only found in code, installed by another solution)
 - Sort modules alphabetically; sort sections alphabetically within each module
 - If field type is not resolvable from JSON, leave as `—`
 - Include all sections accessed, even if no individual field names were captured (e.g. only `GetSectionDefinitionByName` was called)
