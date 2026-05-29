@@ -71,6 +71,8 @@ Read every `.cs` file and extract the following patterns:
 | `secDefVar = cache.GetSectionDefinitionByName("section")` | tracks secDefVar → (cache, section) |
 | `fdVar = secDefVar.GetFieldDescriptorByName("field")` | tracks fdVar → (secDefVar, field) |
 | `GetFieldValue<T>(secDefVar, fdVar)` | resolve chain → module/section/field/**type** |
+| `secDefVar = obj.PropName.GetSectionDefinitionByName("section")` | property-chain form — resolve `PropName` via global property→module map |
+| `obj.PropName.GetFieldDescriptorByName("section", "field")` | property-chain field access — resolve `PropName` via global property→module map |
 | `new FieldDescriptorID(new Guid("guid"))` | field GUID → resolve via JSON |
 | `new SectionDefinitionID(new Guid("guid"))` | section GUID → resolve via JSON |
 
@@ -82,7 +84,7 @@ Build a map of: **module ID → section names → field names (with type where a
 
 ### Scanner notes — variable→module resolution
 
-> **Use per-file scope.** Build a fresh `var → module` map for each `.cs` file. Never merge variable assignments across files — the same name (e.g. `domCache`) may refer to different modules in different files.
+> **Use per-file scope.** Build a fresh `var → module` map for each `.cs` file. In addition, build a **global property→module map** by scanning all files for `PropName = new DomCache(..., moduleId)` assignments (object initializer form). This covers patterns like `helper.DomCache` where `DomCache` is a class property mapped to a specific module. Never merge variable assignments across files — the same name (e.g. `domCache`) may refer to different modules in different files.
 
 **Variable→module resolution priority:**
 1. `var = new DomCache(..., "literal-module-id")` — direct literal match; most reliable.
