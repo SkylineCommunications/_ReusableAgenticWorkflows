@@ -16,6 +16,9 @@ jobs:
       github.event.pull_request.head.repo.owner.login == github.repository_owner
     runs-on: ubuntu-latest
     steps:
+      - name: Install pandoc
+        run: sudo apt-get install -y --no-install-recommends pandoc
+
       - name: Parse release note comment and publish to collaboration
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,6 +53,13 @@ jobs:
           fi
 
           PR_URL="https://github.com/${REPO}/pull/${PR_NUMBER}"
+
+          # Resolve the base branch and latest release tag for SolutionVersion (silently omitted if none found)
+          BASE_BRANCH=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json baseRefName --jq '.baseRefName')
+          SOLUTION_VERSION=$(gh api "repos/$REPO/releases" \
+            --jq '[.[] | select(.target_commitish == "'"$BASE_BRANCH"'" and .draft == false)] | first | .tag_name // empty' \
+            2>/dev/null || true)
+          if [ -n "$SOLUTION_VERSION" ]; then HAS_VERSION=true; else HAS_VERSION=false; fi
 
           # Fetch all release note draft comments (id + body)
           RN_COMMENTS_JSON=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
@@ -141,7 +151,9 @@ jobs:
                   /^[[:space:]]*$/ { if (!started) next; print; next }
                   { started=1; print }
                 ' \
-              | head -c 4000)
+              | head -c 4000 \
+              | pandoc -f gfm -t html --wrap=none)
+            echo "::debug::Converted description HTML: $DESCRIPTION"
 
             if [ -z "$DESCRIPTION" ]; then
               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
@@ -151,24 +163,42 @@ jobs:
             fi
 
             if [ "$BREAKING" = "true" ]; then BREAKING_JSON=true; else BREAKING_JSON=false; fi
+            if [ "$TYPE" = "Bug Fix" ]; then SCOPE="Regression only"; else SCOPE="Functional"; fi
 
             PAYLOAD=$(jq -n \
               --arg title "$TITLE" \
               --arg desc "$DESCRIPTION" \
               --arg type "$TYPE" \
               --argjson breaking "$BREAKING_JSON" \
+              --arg scope "$SCOPE" \
               --arg solution "$SOLUTION" \
               --argjson has_solution "$HAS_SOLUTION" \
+              --arg version "$SOLUTION_VERSION" \
+              --argjson has_version "$HAS_VERSION" \
               --arg pr_url "$PR_URL" \
-              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, InternalComments: $pr_url}
-               + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)')
+              '{Title: $title, Description: $desc, Type: $type, BreakingChange: $breaking, Scope: $scope, InternalComments: $pr_url}
+               + (if $has_solution then {Application: "Solutions", Functionality: [$solution]} else {} end)
+               + (if $has_version then {SolutionVersion: $version} else {} end)')
 
             # Check for idempotency marker — if already published, update instead of creating a new entry
             EXISTING_RN_ID=$(printf '%s' "$COMMENT_BODY" \
               | sed -n 's/.*<!-- rn-published: \([0-9]*\) -->.*/\1/p' | head -1 | tr -d '\r' || true)
 
             if [ -n "$EXISTING_RN_ID" ]; then
-              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" '. + {ID: $id}')
+              # GET the current entry to retrieve its Version for optimistic concurrency
+              GET_RESPONSE=$(curl -s -w "\n%{http_code}" --globoff \
+                "https://api.skyline.be/api/ReleaseNotes/ById?ids[0]=$EXISTING_RN_ID" \
+                -H "Authorization: Bearer $ACCESS_TOKEN")
+              GET_HTTP=$(printf '%s' "$GET_RESPONSE" | tail -1)
+              GET_BODY=$(printf '%s' "$GET_RESPONSE" | head -n -1)
+              EXISTING_VERSION=$(printf '%s' "$GET_BODY" | jq -r '.[0].Version')
+              if [ "$GET_HTTP" != "200" ] || [ -z "$EXISTING_VERSION" ] || [ "$EXISTING_VERSION" = "null" ]; then
+                gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                  -f body="❌ Release note #${ENTRY_NUM}: could not retrieve existing entry for update (HTTP $GET_HTTP): $(printf '%s' "$GET_BODY" | jq -r '.[0].Message // .')"
+                ERRORS=$((ERRORS + 1))
+                continue
+              fi
+              PATCH_PAYLOAD=$(printf '%s' "$PAYLOAD" | jq --argjson id "$EXISTING_RN_ID" --argjson ver "$EXISTING_VERSION" '. + {ID: $id, Version: $ver}')
               RN_RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH "https://api.skyline.be/api/ReleaseNotes" \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 -H "Content-Type: application/json" \
