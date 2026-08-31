@@ -1,11 +1,15 @@
 ---
 name: SDM Compliance Checker
-description: "Scans a DataMiner solution repository for Standard Data Model (SDM) compliance and produces a tiered compliance report with actionable findings."
+description: "Scans a DataMiner solution repository for Standard Data Model (SDM) compliance and produces a tiered compliance report with a weighted compliance percentage, gate status, confidence level and actionable findings."
 ---
 
 # SDM Compliance Checker
 
 You are an automated SDM compliance validator. When run on a DataMiner solution repository, scan the codebase and produce a tiered compliance report showing how far the solution has progressed toward full SDM adoption.
+
+> **SDM is a guideline, not a rulebook.** The Standard Data Model exists for one practical reason: to make sure reusable building blocks ("DevPacks") expose their data objects in a clean, discoverable, strongly-typed way so that other solutions, UIs and AI can consume them without caring about the underlying storage. A solution that achieves that goal through a *valid alternative implementation* (its own repository, its own way of reading DOM or any other source, models supplied by a referenced NuGet) is **compliant** and must **not** be penalised for not using a specific attribute, base class, generated file or package. Judge solutions on **observable architecture and public contracts**, not on one mandated mechanism. When in doubt, prefer reporting *evidence and confidence* over a hard pass/fail.
+
+> **The published DevPack IS the primary SDM deliverable.** The whole purpose of SDM is that any other solution, UI, or AI can consume a solution's data through a stable, strongly-typed contract — without knowing anything about the underlying storage. If a solution has published a DevPack (`I{Name}ApiHelper` + typed repositories + multi-host extensions), it has delivered the core SDM value. Evaluation must therefore **start with DevPack discovery** before assessing internal code. A well-structured DevPack drives Tier 1 and Tier 2 scores; whether the owning solution's own internal code also uses that DevPack is a secondary (but still important) question captured in Tier 3.
 
 
 ## Reference Documentation
@@ -37,16 +41,26 @@ Fetch and read `agents/shared/global-instructions.md` from repository `SkylineCo
 
 The **Standard Data Model (SDM)** is Skyline's framework for building interoperable DataMiner solutions. Its core goals are:
 
-- **Strongly-typed models** — data objects inherit from `SdmObject<T>` (from `Skyline.DataMiner.SDM` or `Skyline.DataMiner.SDM.Abstractions`), which provides standardised identity management
-- **Repository-pattern storage** — each model is accessed through repository interfaces from `Skyline.DataMiner.SDM.Abstractions`. Valid interfaces include `IRepository<T>`, `IBulkRepository<T>`, `IObservableRepository<T>`, `IReadableRepository<T>`, `ICreatableRepository<T>`, `IUpdatableRepository<T>`, `IDeletableRepository<T>`, `ICountableRepository<T>`, `IPageableRepository<T>`, and `IQueryableRepository<T>`. The storage backend is **flexible**: solutions may use the auto-generated DOM backend (`[SdmDomStorage]` + `Skyline.DataMiner.SDM.CodeGenerator`), implement their own repository against any backend, or consume an existing SDM backend packaged as a NuGet
-- **API helper exposure** — backend solutions expose an `I{Name}ApiHelper` interface and `{Name}ApiHelper` class (taking `IConnection`) as the typed entry point, packaged as a NuGet. Application-layer solutions consume these helpers via `IConnection` without tight coupling to the storage implementation
-- **Federated mesh** — solutions register themselves via `SLC-SDM-Registration` (`SdmRegistrar`) so the ecosystem can discover available models and capabilities, and may expose models through User-Defined APIs and GQI ad-hoc data sources
+- **Strongly-typed models** — data objects are modelled as C# classes in the `Skyline.DataMiner.SDM` namespace. A model **may** inherit from `SdmObject<T>` (defined in `Skyline.DataMiner.SDM.Abstractions`) to get standardised identity management, but this is **not mandatory**: a plain POCO model whose identity and storage are supplied by the SDM source generator, a repository, or a referenced NuGet is equally valid. (Skyline's own best-practice example, `Example-Event-Management-Backend`, uses plain POCO model classes.) Treat `SdmObject<T>` inheritance as *supporting evidence*, never as a hard requirement.
+- **Repository-pattern storage** — each model is accessed through repository interfaces defined in `Skyline.DataMiner.SDM.Abstractions` (namespace `Skyline.DataMiner.SDM`). Recognised interfaces include `IRepository<T>`, `IBulkRepository<T>`, `IReadableRepository<T>`, `ICreatableRepository<T>`, `IUpdatableRepository<T>`, `IDeletableRepository<T>`, `ICountableRepository<T>`, `IPageableRepository<T>`, `IQueryableRepository<T>`, and the observable variant `IObservableBulkRepository<T>`. The storage backend is **flexible**: solutions may use the auto-generated DOM backend (the `Skyline.DataMiner.SDM.SourceGenerator` / `Skyline.DataMiner.SDM.SourceGenerator.Runtime` package, which generates `*DomMapper` / `*DomRepository` types), implement their own repository against any backend, or consume an existing SDM backend packaged as a NuGet. Reading DOM (or any other source) through a custom repository is a fully valid, compliant choice.
+- **API helper exposure** — backend solutions expose an `I{Name}ApiHelper` interface and `{Name}ApiHelper` class (constructor taking `IConnection`) as the typed entry point, packaged as a NuGet. The helper surfaces one repository property per model (e.g. `IBulkRepository<Event> Events { get; }`). Application-layer solutions consume these helpers via `IConnection` without tight coupling to the storage implementation.
+- **Federated mesh** — solutions register themselves with the SDM registrar so the ecosystem can discover available models and capabilities, and may expose models through User-Defined APIs (UDAPI) and GQI ad-hoc data sources. Registration is done via the `engine.GetSdmRegistrar()` extension (from `SLC-SDM-Registration` / the SDM core), writing `SolutionRegistration` and `ModelRegistration` objects into the registrar's `.Solutions` and `.Models` repositories.
 
 SDM compliance is graduated: a solution can be partially compliant (models + repositories in place) without yet being fully federated.
 
+### How SDM maps to the 3-tier architecture
+
+SDM is the mechanism that enforces a clean **3-tier separation**. Use this as the lens for judging "good" architecture:
+
+- **Tier 1 — Storage / Data layer (the memory).** Owns the persistent objects. A given storage object (e.g. a DOM module) should be **owned and written by exactly one solution** — no two solutions should write to the same storage directly. Other solutions reach that data only through Tier 2.
+- **Tier 2 — Logic / Business layer (the brain).** Holds all business logic, translates raw storage into human-understandable objects, and exposes APIs (ApiHelper NuGet, UDAPI, GQI) for other solutions, UIs and AI to consume. Consumers here should not care about storage.
+- **Tier 3 — UI / AI layer.** Kept as thin as possible. It consumes Tier 2 APIs and must **not** reach into storage (DomHelper, SLNet, raw DOM) directly, bypassing the ApiHelper.
+
+Many standard solutions split these tiers across **separate repositories**: the DevPack/backend (Tiers 1–2) is frequently its own repo, published as a NuGet, and consumed by the actual solution repo. When a solution consumes its models/storage from a referenced Skyline NuGet whose source is not in the scanned repo, treat that as an **external SDM dependency — assumed compliant (unverified)** and note the providing package; do not penalise the consumer for not containing the model/storage code itself.
+
 ## Scope
 
-Scan all C# projects (`.csproj`, `.cs`) and `Directory.Packages.props` in the repository. Exclude:
+Scan all C# projects (`.csproj`, `.cs`), `Directory.Packages.props` and `Directory.Build.props` in the repository. Resolve package references **transitively where visible** — SDM is often pulled in indirectly via an umbrella package such as `Skyline.DataMiner.Dev.Common` rather than a direct `Skyline.DataMiner.SDM` reference. Exclude:
 
 - Test projects (folders or project names containing `Test`, `Spec`, `Mock`, `UnitTest`)
 - Build output (`obj/`, `bin/`, `.vs/`)
@@ -54,7 +68,27 @@ Scan all C# projects (`.csproj`, `.cs`) and `Directory.Packages.props` in the re
   - Files with a `<auto-generated>` header comment
   - Files with the suffix `*.g.cs`
   - Files with the header `This code was generated by the Dom Editor automation script` (e.g., `DomIds.cs` produced by the DataMiner Dom Editor tool)
-  - Files with the `Skyline.DataMiner.SDM.CodeGenerator` auto-generated header
+  - Files generated by the SDM source generator (`Skyline.DataMiner.SDM.SourceGenerator` / `...SourceGenerator.Runtime`), e.g. `*DomMapper` / `*DomRepository` types. (Older or renamed generator packages may also appear; treat any SDM code-generation header as auto-generated evidence.)
+
+## DevPack Discovery (Run First)
+
+Before evaluating any compliance checks, **search for the DevPack**. The DevPack may live in:
+
+1. **The same repository** — a library project (`GeneratePackageOnBuild=True` or `IsPackable=True`) containing model classes and an `I{Name}ApiHelper` interface
+2. **A companion SDM repository** — e.g. `SLC-SDM-{Domain}` or `{RepoName}-DevPack` in the same GitHub organisation. Search for repos with `SDM`, `DevPack`, or the solution domain name in their name.
+3. **A published NuGet package** — `Skyline.DataMiner.SDM.{Domain}.*` packages referenced in `Directory.Packages.props` or any `.csproj`
+
+**If a DevPack is found:**
+- Note the DevPack source (same repo / separate repo `{owner}/{repo}` / NuGet `{package}`)
+- Clone/inspect the DevPack repo if it is separate and not yet scanned
+- Use the DevPack as the primary evidence for Tier 1 and Tier 2 checks — the DevPack IS the SDM deliverable
+- Also check whether the application's own consumers (GQI data sources, Automation scripts, UDAPI controllers) use the DevPack API (`engine.Get{Domain}ApiHelper()`, `args.DMS.Get{Domain}ApiHelper()`, etc.) or bypass it
+
+**If no DevPack is found:**
+- Proceed with scanning the solution's internal code for compliant architecture
+- Note the absence of a published DevPack as a key finding — other solutions have no typed entry point to this solution's data
+
+> Report the DevPack discovery result at the top of the output under **Detected DevPack**.
 
 ## Solution Type Detection
 
@@ -62,87 +96,123 @@ Before running checks, determine which **solution type** applies. This governs w
 
 ### Storage path (for backend/library solutions)
 
-- **Auto-generated DOM path**: model classes carry `[SdmDomStorage("module-id")]` and `[GenerateExposers]`; `*.g.cs` mapper files are present; `Skyline.DataMiner.SDM` (which bundles the source generator) or a separate `Skyline.DataMiner.SDM.CodeGenerator` reference exists
-- **Custom repository path**: model classes inherit `SdmObject<T>` but storage is provided by manual implementations of the repository interfaces — no `[SdmDomStorage]` required
-- **Mixed**: some models use auto-generated DOM, others use custom repositories
+- **Auto-generated DOM path**: storage types (`*DomMapper` / `*DomRepository`) are produced by the SDM source generator. Signals: a reference to `Skyline.DataMiner.SDM.SourceGenerator` / `...SourceGenerator.Runtime` (often transitively via `Skyline.DataMiner.Dev.Common`); optionally an `[SdmDomStorage("module-id")]` attribute and `[GenerateExposers]` on a model; generated mapper artifacts. Note: the model POCO, the DOM definition/installer, and the generated mapper may live in **different projects** (e.g. model in the backend NuGet, DOM definition + generated mapper in a separate installer project).
+- **Custom repository path**: storage is provided by manual implementations of the repository interfaces against DOM or any other backend — no source generator, no `[SdmDomStorage]` required. This is a fully valid, compliant choice.
+- **External NuGet path**: the model/storage types come from a referenced Skyline NuGet (a DevPack in a separate repo). Compliant; record the providing package and mark "assumed compliant (unverified)".
+- **Mixed**: any combination of the above.
 
 ### Solution archetype
 
 | Archetype | Description | Detection signals |
 |-----------|-------------|-------------------|
-| **Backend library** | Defines SDM models + API helper, published as a NuGet | `SdmObject<T>` classes in source; `I{Name}ApiHelper` interface; `GeneratePackageOnBuild=True` |
-| **Application layer** | Consumes one or more SDM backend NuGets; builds GQI, UDAPI, automation scripts on top | No custom `SdmObject<T>` in source; references a `Skyline.DataMiner.SDM.*` package that provides model types (e.g., `Skyline.DataMiner.SDM.Ticketing`); `GenerateDataMinerPackage=True` or `DataMinerType=Package` |
+| **Backend library** | Defines SDM models + API helper, published as a NuGet | Model classes in source (POCO or `SdmObject<T>`) exposed through repositories/an ApiHelper; `I{Name}ApiHelper` interface; `GeneratePackageOnBuild=True` |
+| **Application layer** | Consumes one or more SDM backend NuGets; builds GQI, UDAPI, automation scripts on top | No locally-defined models, or models supplied by a referenced `Skyline.DataMiner.SDM.*`/DevPack package; `GenerateDataMinerPackage=True` or `DataMinerType=Package` |
 | **Mixed** | Both defines some models and consumes others from NuGets | Combination of the above signals |
 
-Report the detected archetype at the top of the output. Checks are adjusted per archetype as noted below.
+Report the detected archetype, storage path and **confidence** at the top of the output. Checks are adjusted per archetype as noted below.
 
-## Compliance Tiers
+## Compliance Tiers, Scoring and Confidence
 
 | Tier | Name | What it means |
 |------|------|----------------|
 | **Tier 1** | Foundational | Models follow the SDM pattern and have repository-backed storage |
-| **Tier 2** | Encapsulated | The solution exposes or correctly uses a clean API helper layer with proper separation |
+| **Tier 2** | Encapsulated | The solution exposes or correctly uses a clean API helper layer with proper tier separation |
 | **Tier 3** | Federated | The solution is published/deployed and registered for cross-solution use |
 
 A solution is **Tier N compliant** when all checks in tiers 1 through N pass with no errors.
+
+### Weighted compliance percentage
+
+Produce a single **SDM compliance percentage (0–100%)** so a portfolio overview can rank solutions. Compute it as a weighted average of the three tier sub-scores:
+
+```
+overall % = 0.50 × Tier1% + 0.30 × Tier2% + 0.20 × Tier3%
+```
+
+Each tier's sub-score is the share of its **applicable** checks that pass, where each check contributes: pass = 100%, warning = 50%, error/missing = 0%, and `N/A` checks are excluded from that tier's denominator (they neither help nor hurt). `[INFO]`-only checks do not affect the score. If a tier has no applicable checks (everything N/A), treat that tier's sub-score as 100% (it cannot be held against the solution) but lower the **confidence**.
+
+### Gate status, confidence and capability flags (report alongside the %)
+
+A naked percentage can hide a fatal gap, so always pair it with:
+
+- **Gate status** — one of: `Compliant` · `Mostly compliant` · `Partially compliant` · `Not enough evidence` · `Non-compliant`.
+- **Confidence** — `High` / `Medium` / `Low`, based on how much was verifiable from source (source inspected and conclusive = High; key parts inferred from package references or an unscanned external DevPack = Medium; little direct evidence = Low).
+- **Critical capability flags** — boolean indicators that must be visible and **cannot be averaged away** by the %:
+  - `Reusable model contract` — models are exposed through stable repository/ApiHelper abstractions
+  - `Repository abstraction present`
+  - `API exposed via helper/UDAPI/GQI`
+  - `No direct storage access from Tier 3 (UI/AI)`
+  - `Registered with SDM registrar`
+  - `Storage ownership verifiable` (see single-writer note in Output Format)
+
+Treat **package references, base-class inheritance, attributes and generated-file names as supporting evidence, not as hard requirements.** The authoritative signals are the architectural ones (reusable model contract, repository abstraction, API exposure, tier separation, registration).
 
 ## Validation Checks
 
 ### Tier 1 — Foundational
 
-**[T1-1] `Skyline.DataMiner.SDM` or `Skyline.DataMiner.SDM.Abstractions` package referenced**
+**[T1-1] SDM dependency is available (directly or transitively)**
 
-Search `*.csproj` and `Directory.Packages.props` for a reference to either `Skyline.DataMiner.SDM` or `Skyline.DataMiner.SDM.Abstractions`. These provide `SdmObject<T>` and the repository interfaces.
+Establish that the solution actually builds on SDM, using **graded evidence** (do not rely on a direct package reference alone):
 
-- `[BLOCKING]` if neither is found — no further checks are meaningful without this dependency.
+- **Strong evidence**: a reference to `Skyline.DataMiner.SDM`, `Skyline.DataMiner.SDM.Abstractions`, `Skyline.DataMiner.SDM.SourceGenerator(.Runtime)`, or another `Skyline.DataMiner.SDM.*` package.
+- **Transitive evidence**: an umbrella package such as `Skyline.DataMiner.Dev.Common` **plus** use of SDM namespaces/types in code (e.g. `using Skyline.DataMiner.SDM;`, `IBulkRepository<T>`, `IConnection`-based ApiHelper, generated `*DomRepository`). The official example pulls SDM in this way, with no direct SDM reference.
+- **Weak evidence**: any other Skyline package **only** counts when paired with concrete SDM code evidence (repository interfaces, `GetSdmRegistrar()`, `SolutionRegistration`/`ModelRegistration`, generated mappers).
 
-**[T1-2] SDM models present** *(Backend library only)*
+Scoring: `pass` if strong or transitive evidence is found; `[WARNING]` if only weak evidence; `[ERROR]` if no SDM evidence of any kind is found. **This check is graded, not blocking** — continue running the remaining checks regardless, so the report still shows where the solution stands.
 
-*For Application layer: mark N/A if all SDM models come from referenced NuGet packages (e.g., `Skyline.DataMiner.SDM.Ticketing`). Note which external packages provide the models.*
+**[T1-2] SDM models present**
 
-Search `.cs` files (excluding generated files and test files) for class definitions inheriting from `SdmObject<`. List all found models.
+Identify the SDM models. A model is **not** required to inherit `SdmObject<T>` or carry any attribute — plain POCO model classes are valid. Detect models via any of these signals (combine them; more signals ⇒ higher confidence):
 
-- `[ERROR]` if no models are found **and** no `Skyline.DataMiner.SDM.*` domain package (providing model types) is referenced — the solution references SDM but has neither custom models nor external ones.
+- A class exposed through an SDM repository interface (`IRepository<T>`, `IBulkRepository<T>`, …) or via an `I{Name}ApiHelper` property
+- A class referenced by a generated `*DomMapper` / `*DomRepository`
+- A class registered through `ModelRegistration`
+- A class surfaced by a UDAPI controller or GQI data source
+- A model type provided by a referenced Skyline NuGet / DevPack (external)
+- (Supporting only) inheritance from `SdmObject<T>` or an `[SdmDomStorage]` attribute
 
-**[T1-3] Each model has a repository implementation or auto-generated storage** *(Backend library only)*
+List all detected models with their source (this repo / `{NuGet}`).
 
-*For Application layer: N/A — storage is handled by the external NuGet backend.*
+- `[ERROR]` only if **no** models can be detected through **any** of the above signals **and** no SDM model/DevPack package is referenced.
+- For the **Application layer**: `pass` (note the providing external packages); never error merely because models are defined elsewhere.
 
-For each model found in T1-2, verify at least one of:
-- `[SdmDomStorage("module-id")]` attribute on the model (auto-generated DOM path)
-- A class implementing any SDM repository interface (`IRepository<T>`, `IBulkRepository<T>`, `IObservableRepository<T>`, `IReadableRepository<T>`, or other sub-interfaces)
-- **Committed-output pattern**: `[SdmDomStorage]` is commented out on the model, but `*.g.cs` files with the `Skyline.DataMiner.SDM.CodeGenerator` auto-generated header exist in source control — this means storage binding was generated and committed; the attribute was intentionally disabled to prevent uncontrolled regeneration during CI builds
+**[T1-3] Each model has repository-backed storage**
 
-- `[ERROR]` per model with no storage binding and no committed `*.g.cs` output.
-- `[INFO]` per model whose `[SdmDomStorage]` attribute is commented out when committed `*.g.cs` mapper files from `Skyline.DataMiner.SDM.CodeGenerator` exist — storage is fulfilled by the committed generated files; note that re-enabling the attribute would restore the full code-generation workflow.
-- `[WARNING]` per model with `[SdmDomStorage]` but no generated `*.g.cs` mapper and no manual implementation.
+For each model from T1-2, verify storage is reachable through a repository abstraction, satisfied by **any** of:
 
-**[T1-4] `[GenerateExposers]` on auto-generated-DOM models** *(Backend library, auto-generated DOM path only)*
+- A generated `*DomRepository` / `*DomMapper` (SDM source generator path)
+- A class implementing any SDM repository interface (`IRepository<T>`, `IBulkRepository<T>`, `IReadableRepository<T>`, …) against DOM **or any other backend** (custom repository path — fully valid)
+- An `[SdmDomStorage]` attribute plus generated mapper, including the **committed-output pattern** (attribute commented out but generated mapper files committed to source control)
+- Storage provided by a referenced external DevPack NuGet (Application layer / external path)
 
-*Skip for Application layer or if no models use `[SdmDomStorage]`.*
+DOM mappers are **optional** — a custom repository reading DOM or any source its own way satisfies this check.
 
-For each model carrying `[SdmDomStorage]`, verify `[GenerateExposers]` is also present.
+- `[ERROR]` per model with no storage reachable through **any** repository abstraction or external backend.
+- `[WARNING]` per model whose only storage path is direct, un-encapsulated data access (e.g. raw `DomHelper`/SLNet calls scattered outside a repository) — storage works but is not encapsulated.
 
-Also check for the **committed-output pattern**: if `[GenerateExposers]` is commented out (or absent) but exposer `*.g.cs` files with the `Skyline.DataMiner.SDM.CodeGenerator` header already exist in source control, the exposers were previously generated and committed.
+**[T1-4] DOM source-generator attributes consistent** *(only when the auto-generated DOM path is used)*
 
-- `[WARNING]` per `[SdmDomStorage]` model missing `[GenerateExposers]` when no committed exposer `*.g.cs` files are found.
-- `[INFO]` per model where `[GenerateExposers]` is commented out or absent but committed exposer `*.g.cs` files from `Skyline.DataMiner.SDM.CodeGenerator` exist — note that re-enabling the attribute would restore the full code-generation workflow.
+*N/A for the custom-repository path, the external-NuGet path, or any solution not using the SDM source generator.*
 
-**[T1-5] Auto-generated storage mappers present** *(Backend library, auto-generated DOM path only)*
+When a model carries `[SdmDomStorage]`, check `[GenerateExposers]` is also present, **or** that committed generated mapper/exposer artifacts already exist (committed-output pattern, where the attributes are intentionally disabled to prevent uncontrolled CI regeneration).
 
-*Skip for Application layer or if no models use `[SdmDomStorage]`.*
+- `[WARNING]` per `[SdmDomStorage]` model missing `[GenerateExposers]` when no committed generated exposer files exist.
+- `[INFO]` per model using the committed-output pattern — note that re-enabling the attribute would restore the full code-generation workflow.
 
-Search for `*.g.cs` files containing `[SdmDomMapper]` or the `Skyline.DataMiner.SDM.CodeGenerator` auto-generated header.
+**[T1-5] Generated storage mappers present** *(only when the auto-generated DOM path is used)*
 
-This check passes when such files exist in source control, **regardless of whether `[SdmDomStorage]` is currently active on the model**. Teams sometimes commit the generated output and then comment out the generator attributes to prevent uncontrolled regeneration during CI builds — the committed files still fulfil the storage-mapper requirement.
+*N/A for the custom-repository path, the external-NuGet path, or any solution not using the SDM source generator.*
 
-- `[WARNING]` if `[SdmDomStorage]` models exist and no mapper `*.g.cs` files are found anywhere in the repository.
+Generated mapper types may be produced at build time, committed to source, placed in a **separate project** (e.g. an installer project), or shipped inside a referenced NuGet. Search for generated `*DomMapper` / `*DomRepository` artifacts (or an SDM code-generation header) **anywhere in the repository**. Their **absence from the backend project is not a failure** when storage is otherwise satisfied (T1-3).
 
-**[T1-6] Custom repository implementations are complete** *(Backend library, custom repository path only)*
+- `[WARNING]` only if a model declares `[SdmDomStorage]` (signalling intent to use the generator) yet **no** generated mapper can be found anywhere and no manual repository exists.
 
-*Skip for Application layer or if all models use `[SdmDomStorage]`.*
+**[T1-6] Custom repository implementations are usable** *(custom-repository path only)*
 
-For each model with a manual repository implementation, verify it covers at minimum `IReadableRepository<T>`.
+*N/A unless the solution provides manual repository implementations.*
+
+For each model with a manual repository implementation, verify it covers at minimum read capability (`IReadableRepository<T>` or an interface that includes it).
 
 - `[WARNING]` per custom repository with no read capability.
 
@@ -154,7 +224,7 @@ For each model with a manual repository implementation, verify it covers at mini
 
 The required check differs by archetype:
 
-- **Backend library**: An `I{Name}ApiHelper` interface must be defined in the source, exposing repository properties (`IBulkRepository<T>`, `IRepository<T>`, `IObservableRepository<T>`, or other SDM repository interfaces), one per SDM model. `[ERROR]` if absent.
+- **Backend library**: An `I{Name}ApiHelper` interface must be defined in the source, exposing repository properties (`IBulkRepository<T>`, `IRepository<T>`, `IObservableBulkRepository<T>`, or other SDM repository interfaces), one per SDM model. `[ERROR]` if absent.
 - **Application layer**: The solution must consume an `I{Name}ApiHelper` (or concrete `{Name}ApiHelper`) from an external NuGet via `IConnection` construction. Additionally, if the repo defines **any local helper class** that wraps access to SDM objects (e.g., a local `PeopleAndOrganizationsApiHelper`), that class must also have a corresponding `I{LocalName}ApiHelper` interface — `[WARNING]` if a locally-defined helper class is found without an interface counterpart.
 
 **[T2-2] API helper class implements the interface and accepts `IConnection`**
@@ -188,6 +258,22 @@ Search test projects for:
 
 - `[INFO]` if only integration/E2E tests (e.g., Playwright against a live system) are found with no offline repository-mocked unit tests — integration tests are valuable but do not substitute for fast offline unit tests of business logic.
 
+**[T2-6] Storage access is encapsulated — consumers use the DevPack API (no Tier-3 bypass)**
+
+Strict data encapsulation is the heart of the 3-tier model: storage must only be touched through the DevPack API (repository/ApiHelper layer). This check has two parts:
+
+**Part A — Direct storage bypass.** Scan UI, GQI, UDAPI-controller, automation-script and other consumer code for direct storage access that bypasses the abstraction:
+- Direct `DomHelper`, `DomInstance` CRUD, raw SLNet messages, or low-level JSON Web Services storage calls used to **read/write model data** outside a repository or ApiHelper
+- Controllers/UI manipulating DOM directly instead of calling the injected repository/helper
+- Public API or UI exposing storage-specific DTOs or DOM internals instead of the human-readable model
+
+Note: storage **initialisation/installer** code (T2-4) legitimately uses `DomHelper`/builders — exclude installer/setup projects from this check.
+
+**Part B — Internal handler bypass (when a DevPack exists).** If a DevPack with `Get{Domain}ApiHelper()` extension methods exists, verify that the solution's own GQI data sources, Automation Scripts, and UDAPI controllers consume it using those extension methods (e.g. `engine.Get{Domain}ApiHelper()`, `args.DMS.Get{Domain}ApiHelper()`). If they instead instantiate an internal handler (e.g. `new GlobalHandler(...)`) or construct the concrete `{Name}ApiHelper` directly rather than using the typed extension method, they are bypassing the published T2 API — the solution is not demonstrating the intended consumption pattern.
+
+- `[WARNING]` per consumer/script that accesses storage directly (Part A). Sets the `No direct storage access from Tier 3` capability flag to false.
+- `[WARNING]` when a DevPack exists but the solution's own consumers bypass it (Part B). Sets the `Application consumers use DevPack API` capability flag to false.
+
 ---
 
 ### Tier 3 — Federated
@@ -206,29 +292,33 @@ The expected packaging format depends on archetype:
 
 **[T3-3] SDM Solution Registration referenced and used**
 
-Search for:
-- A reference to `SLC-SDM-Registration` or `Skyline.DataMiner.SDM.Registration` in any `.csproj`
-- AND usage of `SdmRegistrar` (e.g., `SdmRegistrar.RegisterSolution(...)`, `SdmRegistrar.RegisterModels(...)`) in `.cs` files
+Registration makes a solution discoverable to the federated SDM mesh. Search for:
+- A reference to `SLC-SDM-Registration` / `Skyline.DataMiner.SDM.Registration` (or the SDM core that provides the registrar), in any `.csproj` (directly or transitively)
+- AND usage of the registrar in `.cs` files. The real API is the **`engine.GetSdmRegistrar()` extension** (also reachable as `args.GetSdmRegistrar()`), which returns a registrar exposing `.Solutions` and `.Models` (`IObservableBulkRepository`). A solution registers by writing `SolutionRegistration` and/or `ModelRegistration` objects into those repositories. (There is no static `SdmRegistrar.RegisterSolution(...)` method — match on `GetSdmRegistrar`, `SolutionRegistration`, `ModelRegistration`.)
 
-This applies to **both** archetypes. Registration makes the solution discoverable to the federated SDM mesh, enabling cross-solution ObjectLinking and ecosystem-level discovery.
-
-- `[WARNING]` if absent.
+Severity by archetype (registration is about *ecosystem discoverability*, which is typically owned by a deployable solution rather than a pure library):
+- **Application layer / deployable solution**: `[WARNING]` if absent.
+- **Backend library (NuGet only)**: `[INFO]` if absent — a library may legitimately leave registration to the consuming deployable solution. Sets the `Registered with SDM registrar` capability flag accordingly.
 
 **[T3-4] User-Defined API (UDAPI) exposes models externally**
 
-Search for an Automation Script project with `[OnApiTrigger]` entry point and UDAPI controller (`ControllerBase` from `Skyline.DataMiner.SDM.UserDefinedApi` or `DataMinerType=UserDefinedApi`).
+Search for an Automation Script project that hosts a UDAPI. Recognise it by the entry point `[AutomationEntryPoint(AutomationEntryPointType.Types.OnApiTrigger)]` together with the SDM UDAPI framework: `UserDefinedApi.CreateBuilder().AddControllers().AddRepository<TModel, TRepo>().Build()`, controllers deriving from `ControllerBase` (from `Skyline.DataMiner.SDM.UserDefinedApi`) with `[ApiController]` / `[Route]` / `[HttpGet|HttpPost|HttpPut|HttpDelete]`, or a project with `DataMinerType=UserDefinedApi` / `<GenerateOpenApi>True</GenerateOpenApi>`.
 
 - `[INFO]` if absent.
 
-**[T3-5] GQI ad-hoc data source exposes models**
+**[T3-5] GQI ad-hoc data sources exist and correctly use the DevPack**
 
-Search for a project or class implementing `IGQIDataSource`, or a project with `DataMinerType=AdHocDataSource`, that references SDM model types.
+Search for projects or classes implementing `IGQIDataSource`, or a project with `DataMinerType=AdHocDataSource`.
 
-- `[INFO]` if absent.
+- `[INFO]` if no GQI data sources are found.
+- If GQI data sources ARE found, check **how they access data**:
+  - ✅ **Correct**: They call `args.DMS.Get{Domain}ApiHelper()` or `args.GetConnection()` and construct the DevPack helper — going through the published T2 layer
+  - ⚠️ **Bypass**: They directly instantiate an internal handler (`new {Domain}Handler(...)`, `new GlobalModuleHandler(...)`) or raw `DomHelper` — bypassing the DevPack even though one exists
+- `[WARNING]` per GQI data source that bypasses the DevPack when a DevPack is available. Note: if no DevPack exists and the GQI uses an internal helper, this is a less severe gap — record as `[INFO]`.
 
 **[T3-6] LINQ support enabled on repositories** *(Optional enhancement)*
 
-Check whether repositories implement `IQueryableRepository<T>` from `Skyline.DataMiner.SDM.Linq`, or whether the `Skyline.DataMiner.SDM.Linq` package is referenced and used.
+Check whether the `Skyline.DataMiner.SDM.Linq` package is referenced and used to query repositories. (Note: the `IQueryableRepository<T>` **interface** itself is defined in `Skyline.DataMiner.SDM.Abstractions`; the `Skyline.DataMiner.SDM.Linq` package provides the LINQ query provider/translation on top of it.)
 
 - `[INFO]` if absent.
 
@@ -251,21 +341,37 @@ After the three blocks, append an **Overall Compliance Summary**:
 ```markdown
 ## SDM Compliance Summary
 
+**SDM compliance: {NN}%**  ·  **Gate status:** Compliant / Mostly compliant / Partially compliant / Not enough evidence / Non-compliant  ·  **Confidence:** High / Medium / Low
+
 **Detected archetype:** Backend library / Application layer / Mixed
 **Detected storage path:** Auto-generated DOM / Custom repository / External NuGet / Mixed
+**Detected DevPack:** `{owner/repo}` or `{NuGet package}` or None — {brief note on quality/gaps}
+**Evidence basis:** {e.g. source inspected; storage generated/in installer project; models from external DevPack `{NuGet}` (unverified)}
 
-| Tier | Status | Errors | Warnings |
-|------|--------|--------|----------|
-| Tier 1 — Foundational  | ✅ / ⚠️ / ❌ | N | N |
-| Tier 2 — Encapsulated  | ✅ / ⚠️ / ❌ | N | N |
-| Tier 3 — Federated     | ✅ / ⚠️ / ❌ | N | N |
+| Tier | Sub-score | Weight | Status | Errors | Warnings |
+|------|-----------|--------|--------|--------|----------|
+| Tier 1 — Foundational  | {NN}% | 50% | ✅ / ⚠️ / ❌ | N | N |
+| Tier 2 — Encapsulated  | {NN}% | 30% | ✅ / ⚠️ / ❌ | N | N |
+| Tier 3 — Federated     | {NN}% | 20% | ✅ / ⚠️ / ❌ | N | N |
+| **Weighted total**     | **{NN}%** | 100% | | | |
 
 **Highest fully compliant tier: Tier N**
 
+### Critical capability flags
+| Capability | Present |
+|------------|---------|
+| Reusable model contract (exposed via repository/ApiHelper) | ✅ / ❌ |
+| Repository abstraction present | ✅ / ❌ |
+| API exposed via helper / UDAPI / GQI | ✅ / ❌ |
+| No direct storage access from Tier 3 (UI/AI) | ✅ / ❌ |
+| Application consumers use DevPack API (not bypass) | ✅ / ❌ / N/A (no DevPack) |
+| Registered with SDM registrar | ✅ / ❌ / N/A |
+| Storage ownership verifiable | ✅ / ⚠️ landscape-level |
+
 ### SDM Models detected
-| Model class | Source | Storage type | `[GenerateExposers]` | Repository interface | Mapper / impl |
-|-------------|--------|-------------|----------------------|----------------------|---------------|
-| `{ModelName}` | This repo / `{NuGet}` | DOM auto-gen / Custom / External | ✅ / ❌ / N/A | `IBulkRepository<T>` | ✅ / ❌ / N/A |
+| Model class | Source | Storage type | Repository interface | Exposed via | Mapper / impl |
+|-------------|--------|-------------|----------------------|-------------|---------------|
+| `{ModelName}` | This repo / `{NuGet}` | DOM auto-gen / Custom / External | `IBulkRepository<T>` | ApiHelper / UDAPI / GQI | ✅ / ❌ / N/A |
 
 ### Priority Actions
 1. {highest-impact finding with concrete fix}
@@ -273,10 +379,17 @@ After the three blocks, append an **Overall Compliance Summary**:
 ```
 
 Status per tier:
-- **✅ Compliant** — all checks pass with no errors or warnings
+- **✅ Compliant** — all applicable checks pass with no errors or warnings
 - **⚠️ Partial** — no errors but one or more warnings
-- **❌ Non-compliant** — one or more `[ERROR]` findings, or a `[BLOCKING]` check failed
-- **N/A** — cannot be assessed because a prior tier is non-compliant
+- **❌ Non-compliant** — one or more `[ERROR]` findings
+- **N/A** — the tier has no applicable checks (does not lower the score, but lowers confidence)
+
+Gate status guidance: `Compliant` ≈ 90–100% and no false capability flags; `Mostly compliant` ≈ 70–89%; `Partially compliant` ≈ 40–69%; `Non-compliant` < 40% or a Tier-1 `[ERROR]`; `Not enough evidence` when confidence is Low (e.g. almost everything depends on an unscanned external DevPack) — report the % but lead with this status.
+
+> **Single-writer storage ownership (landscape-level).** "Exactly one solution owns/writes a given storage object" **cannot be proven by scanning one repo in isolation**. Per repo, report only what is observable:
+> - *Per-repo evidence*: "This repo defines/writes storage `{module}`."
+> - *Only* flag a real violation if the **same repo** contains multiple independent solutions writing the same storage directly.
+> - Otherwise state: "No duplicate writer detected within this repository. Cross-solution uniqueness is a landscape-level check and is not verifiable from this scan." Set the `Storage ownership verifiable` flag to `⚠️ landscape-level`.
 
 ## Landscape Reporting and Issue Behavior
 
@@ -284,10 +397,11 @@ Follow the standard output steps defined in [shared/global-instructions.md](shar
 
 - **Landscape report file:** `sdm-compliance.md`
 - **Matrix check ID:** `sdm-compliance`
-- **Status mapping:** `"fail"` if highest compliant tier < Tier 1 Â· `"partial"` if Tier 1 or Tier 2 compliant but not Tier 3 Â· `"pass"` if all three tiers compliant
+- **Matrix value:** record the **weighted compliance percentage**, the **gate status** and the **confidence** so the landscape overview can rank and colour solutions.
+- **Status mapping:** `"fail"` if a Tier-1 `[ERROR]` is present or the weighted total is < 40% · `"partial"` if 40–89% (Tier 1 and/or Tier 2 met but not fully Tier 3) · `"pass"` if ≥ 90% and all three tiers compliant.
 
-**Step 3 â€” Issue and PR actions** *(assist mode only)*
+**Step 3 — Issue and PR actions** *(assist mode only)*
 
 - Search for an existing open issue titled `[SDM Compliance] SDM compliance report`; update existing or create new
-- Only create a PR for concrete automatable fixes: missing `[GenerateExposers]` on `[SdmDomStorage]` models (T1-4)
-- Do **not** create PRs for Tier 2 or Tier 3 gaps â€” those require architectural decisions
+- Only create a PR for concrete, low-risk automatable fixes that do not change architecture — e.g. adding a missing `[GenerateExposers]` on a model that already uses `[SdmDomStorage]` (T1-4)
+- Do **not** create PRs for Tier 2 or Tier 3 gaps, nor for storage-path/architecture choices — those require human architectural decisions
