@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facility Manager — Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:           #060B12;
+      --surface-1:    #0C1520;
+      --surface-2:    #111D2C;
+      --surface-3:    #1A2C3F;
+      --surface-4:    #223040;
+      --border:       rgba(255,255,255,0.06);
+      --border-hi:    rgba(255,255,255,0.13);
+
+      --teal:         #2DD4BF;
+      --teal-dim:     rgba(45,212,191,0.12);
+      --amber:        #F59E0B;
+      --amber-dim:    rgba(245,158,11,0.12);
+      --blue:         #60A5FA;
+      --blue-dim:     rgba(96,165,250,0.12);
+      --orange:       #FB923C;
+      --orange-dim:   rgba(251,146,60,0.12);
+      --green:        #4ADE80;
+      --green-dim:    rgba(74,222,128,0.12);
+      --red:          #F87171;
+
+      --text-1:       #E6EFF8;
+      --text-2:       #7D8FA3;
+      --text-3:       #445566;
+
+      --nav-w:        60px;
+      --sidebar-w:    272px;
+      --topbar-h:     48px;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text-1);
+      overflow: hidden;
+    }
+
+    /* ─── SCROLLBARS ──────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+
+    /* ─── ROOT LAYOUT ─────────────────────────────────────── */
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ─── TOP BAR ─────────────────────────────────────────── */
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--surface-1);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px 0 0;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .topbar-hamburger {
+      width: var(--nav-w);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--border);
+      flex-shrink: 0;
+      cursor: pointer;
+      color: var(--text-2);
+      transition: color 0.15s;
+    }
+    .topbar-hamburger:hover { color: var(--text-1); }
+
+    .topbar-brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .topbar-sep {
+      width: 1px; height: 18px;
+      background: var(--border-hi);
+    }
+
+    .topbar-sub {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .topbar-space { flex: 1; }
+
+    .topbar-icon-btn {
+      width: 30px; height: 30px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .topbar-icon-btn:hover { background: var(--surface-2); color: var(--text-1); border-color: var(--border-hi); }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--blue) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: #060B12;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ─── BODY LAYOUT ─────────────────────────────────────── */
+    .body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ─── LEFT NAV ────────────────────────────────────────── */
+    .nav {
+      width: var(--nav-w);
+      background: var(--surface-1);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      width: 42px; height: 42px;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-3);
+      transition: all 0.15s;
+      position: relative;
+    }
+    .nav-btn:hover { background: var(--surface-2); color: var(--text-2); }
+    .nav-btn.active { background: var(--teal-dim); color: var(--teal); }
+    .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      left: -10px; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 22px;
+      background: var(--teal);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .nav-gap { flex: 1; }
+
+    /* ─── MAIN CONTENT ────────────────────────────────────── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* ─── PAGE HEADER ─────────────────────────────────────── */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .page-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--text-1);
+      line-height: 1;
+    }
+
+    .page-crumb {
+      font-size: 12px;
+      color: var(--text-3);
+      padding-top: 2px;
+    }
+
+    .header-spacer { flex: 1; }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-3);
+      letter-spacing: 0.05em;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(74,222,128,0.5);
+      animation: pulse 2.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); }
+      70%  { box-shadow: 0 0 0 5px rgba(74,222,128,0); }
+      100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+    }
+
+    /* ─── KPI GRID ────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .kpi {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px 14px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+      animation: riseIn 0.45s ease both;
+    }
+    .kpi:hover { border-color: var(--border-hi); transform: translateY(-1px); }
+
+    .kpi::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-lg);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .kpi::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .kpi.c-teal::after  { background: var(--teal); }
+    .kpi.c-orange::after{ background: var(--orange); }
+    .kpi.c-blue::after  { background: var(--blue); }
+    .kpi.c-amber::after { background: var(--amber); }
+
+    .kpi:nth-child(1) { animation-delay: 0.05s; }
+    .kpi:nth-child(2) { animation-delay: 0.12s; }
+    .kpi:nth-child(3) { animation-delay: 0.19s; }
+    .kpi:nth-child(4) { animation-delay: 0.26s; }
+
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .kpi-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .kpi.c-teal  .kpi-val { color: var(--teal); }
+    .kpi.c-orange .kpi-val{ color: var(--orange); }
+    .kpi.c-blue  .kpi-val { color: var(--blue); }
+    .kpi.c-amber .kpi-val { color: var(--amber); }
+
+    .kpi-note {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-3);
+      line-height: 1.3;
+    }
+
+    .kpi-bar-track {
+      margin-top: 12px;
+      height: 3px;
+      background: var(--surface-3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .kpi-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      width: 0;
+      transition: width 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .kpi.c-teal  .kpi-bar-fill { background: var(--teal); }
+    .kpi.c-orange .kpi-bar-fill{ background: var(--orange); }
+    .kpi.c-blue  .kpi-bar-fill { background: var(--blue); }
+    .kpi.c-amber .kpi-bar-fill { background: var(--amber); }
+
+    /* ─── CHARTS ROW ──────────────────────────────────────── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--surface-1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+      animation: riseIn 0.45s ease both;
+    }
+    .card:hover { border-color: var(--border-hi); }
+
+    .charts-row .card:nth-child(1) { animation-delay: 0.30s; }
+    .charts-row .card:nth-child(2) { animation-delay: 0.36s; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .card-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: var(--surface-3);
+      color: var(--text-3);
+    }
+
+    /* ─── DONUT CHART ─────────────────────────────────────── */
+    .donut-wrap {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .donut-svg { flex-shrink: 0; }
+
+    .donut-seg {
+      transition: stroke-dasharray 1.4s cubic-bezier(0.22, 1, 0.36, 1),
+                  stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .donut-legend {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .legend-pip {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-name { color: var(--text-2); flex: 1; }
+
+    .legend-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    /* ─── BAR CHART ───────────────────────────────────────── */
+    .bar-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .bar-lbl {
+      width: 82px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-2);
+      text-align: right;
+      flex-shrink: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 18px;
+      background: var(--surface-3);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: var(--radius-sm);
+      width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(6,11,18,0.85);
+      transition: width 1.3s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ─── BOTTOM 3-COLUMN ROW ─────────────────────────────── */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .bottom-row .card:nth-child(1) { animation-delay: 0.42s; }
+    .bottom-row .card:nth-child(2) { animation-delay: 0.48s; }
+    .bottom-row .card:nth-child(3) { animation-delay: 0.54s; }
+
+    /* ─── RIGHT SIDEBAR ───────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface-1);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sb-section {
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sb-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .filter-wrap { position: relative; }
+
+    .filter-input {
+      width: 100%;
+      height: 32px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0 30px 0 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--text-1);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .filter-input::placeholder { color: var(--text-3); }
+    .filter-input:focus { border-color: var(--teal); }
+
+    .filter-icon {
+      position: absolute;
+      right: 9px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      pointer-events: none;
+    }
+
+    /* ─── STAT ROWS ───────────────────────────────────────── */
+    .stat-list { display: flex; flex-direction: column; gap: 1px; }
+
+    .stat-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 8px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: background 0.15s;
+      gap: 8px;
+    }
+    .stat-row:hover { background: var(--surface-2); }
+
+    .stat-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .stat-icon {
+      width: 22px; height: 22px;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+
+    .stat-name {
+      font-size: 12px;
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-1);
+    }
+
+    /* ─── UTILIZATION RING ────────────────────────────────── */
+    .util-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .util-ring-seg {
+      transition: stroke-dasharray 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .util-metrics {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .util-metric-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 1px;
+    }
+
+    .util-metric-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    /* ─── POWER BAR ───────────────────────────────────────── */
+    .power-bar-wrap { margin-top: 4px; }
+
+    .power-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .power-bar-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--amber);
+    }
+
+    .power-bar-track {
+      height: 6px;
+      background: var(--surface-3);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .power-bar-fill {
+      height: 100%;
+      background: var(--amber);
+      border-radius: 3px;
+      width: 0;
+      transition: width 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .power-bar-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 5px;
+    }
+
+    .power-bar-footer span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-3);
+    }
+
+    /* ─── ANIMATIONS ──────────────────────────────────────── */
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOP BAR ── -->
+  <header class="topbar">
+    <div class="topbar-hamburger">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <line x1="3" y1="6"  x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </div>
+    <span class="topbar-brand">Facility Manager</span>
+    <div class="topbar-sep"></div>
+    <span class="topbar-sub">DataMiner</span>
+    <div class="topbar-space"></div>
+    <button class="topbar-icon-btn" title="Edit">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/>
+      </svg>
+    </button>
+    <button class="topbar-icon-btn" title="More">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <circle cx="12" cy="5" r="1.2" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1.2" fill="currentColor"/>
+        <circle cx="12" cy="19" r="1.2" fill="currentColor"/>
+      </svg>
+    </button>
+    <div class="avatar">LD</div>
+  </header>
+
+  <div class="body">
+
+    <!-- ── LEFT NAV ── -->
+    <nav class="nav">
+      <div class="nav-btn active" title="Overview">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <div class="nav-btn" title="Assets">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        </svg>
+      </div>
+      <div class="nav-btn" title="Racks">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="2" width="20" height="8" rx="2"/>
+          <rect x="2" y="14" width="20" height="8" rx="2"/>
+          <line x1="6" y1="6" x2="6.01" y2="6" stroke-width="3" stroke-linecap="round"/>
+          <line x1="6" y1="18" x2="6.01" y2="18" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="nav-btn" title="Reports">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      </div>
+      <div class="nav-btn" title="Schedule">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div class="nav-gap"></div>
+      <div class="nav-btn" title="Settings">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <div class="nav-btn" title="Info">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </nav>
+
+    <!-- ── MAIN ── -->
+    <main class="main">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <h1 class="page-title">Overview</h1>
+        <span class="page-crumb">/ Facility Management</span>
+        <div class="header-spacer"></div>
+        <div class="live-badge">
+          <div class="live-dot"></div>
+          Live
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi c-teal">
+          <div class="kpi-label">Total Rack Units</div>
+          <div class="kpi-val" data-count="6567">0</div>
+          <div class="kpi-note">U — installed capacity</div>
+          <div class="kpi-bar-track"><div class="kpi-bar-fill" data-w="100"></div></div>
+        </div>
+        <div class="kpi c-orange">
+          <div class="kpi-label">Used Rack Units</div>
+          <div class="kpi-val" data-count="387">0</div>
+          <div class="kpi-note">5.89% utilization rate</div>
+          <div class="kpi-bar-track"><div class="kpi-bar-fill" data-w="5.89"></div></div>
+        </div>
+        <div class="kpi c-blue">
+          <div class="kpi-label">Free Rack Units</div>
+          <div class="kpi-val" data-count="6180">0</div>
+          <div class="kpi-note">94.11% available</div>
+          <div class="kpi-bar-track"><div class="kpi-bar-fill" data-w="94.11"></div></div>
+        </div>
+        <div class="kpi c-amber">
+          <div class="kpi-label">Power Capacity</div>
+          <div class="kpi-val" data-count="710">0</div>
+          <div class="kpi-note">KW — consumption: 106.34 KW</div>
+          <div class="kpi-bar-track"><div class="kpi-bar-fill" data-w="14.97"></div></div>
+        </div>
+      </div>
+
+      <!-- Donut Charts -->
+      <div class="charts-row">
+
+        <!-- Facilities by Type -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Facilities by Type</span>
+            <span class="card-badge">3 facilities</span>
+          </div>
+          <div class="donut-wrap">
+            <!-- r=44, C=276.46 -->
+            <svg class="donut-svg" width="116" height="116" viewBox="0 0 116 116">
+              <circle cx="58" cy="58" r="44" fill="none" stroke="var(--surface-3)" stroke-width="14"/>
+              <circle class="donut-seg"
+                cx="58" cy="58" r="44" fill="none"
+                stroke="var(--teal)" stroke-width="14"
+                stroke-dasharray="0 276.46"
+                stroke-linecap="round"
+                transform="rotate(-90 58 58)"
+                data-full="276.46"/>
+              <text x="58" y="54" text-anchor="middle" fill="var(--text-1)"
+                font-family="JetBrains Mono,monospace" font-size="19" font-weight="700">3</text>
+              <text x="58" y="67" text-anchor="middle" fill="var(--text-3)"
+                font-family="DM Sans,sans-serif" font-size="8.5">facilities</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-row">
+                <div class="legend-pip" style="background:var(--teal)"></div>
+                <span class="legend-name">Building</span>
+                <span class="legend-num">3 · 100%</span>
+              </div>
+              <div class="legend-row" style="opacity:.45">
+                <div class="legend-pip" style="background:var(--surface-3)"></div>
+                <span class="legend-name">Other</span>
+                <span class="legend-num">0 · 0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Facilities by State -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Facilities by State</span>
+            <span class="card-badge">3 facilities</span>
+          </div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="116" height="116" viewBox="0 0 116 116">
+              <circle cx="58" cy="58" r="44" fill="none" stroke="var(--surface-3)" stroke-width="14"/>
+              <circle class="donut-seg"
+                cx="58" cy="58" r="44" fill="none"
+                stroke="var(--green)" stroke-width="14"
+                stroke-dasharray="0 276.46"
+                stroke-linecap="round"
+                transform="rotate(-90 58 58)"
+                data-full="276.46"/>
+              <text x="58" y="54" text-anchor="middle" fill="var(--text-1)"
+                font-family="JetBrains Mono,monospace" font-size="19" font-weight="700">3</text>
+              <text x="58" y="67" text-anchor="middle" fill="var(--text-3)"
+                font-family="DM Sans,sans-serif" font-size="8.5">active</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-row">
+                <div class="legend-pip" style="background:var(--green)"></div>
+                <span class="legend-name">Active</span>
+                <span class="legend-num">3 · 100%</span>
+              </div>
+              <div class="legend-row" style="opacity:.45">
+                <div class="legend-pip" style="background:var(--red)"></div>
+                <span class="legend-name">Inactive</span>
+                <span class="legend-num">0 · 0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /charts-row -->
+
+      <!-- Bar Charts (3-column) -->
+      <div class="bottom-row">
+
+        <!-- Top racks -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top — Rack Count</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-row">
+              <span class="bar-lbl">f-kley</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--teal)" data-w="95">75</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">bm-mich</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--blue)" data-w="81">65</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">E&amp;_Pop097</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--amber)" data-w="13">10</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Used % -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top — Used Units %</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-row">
+              <span class="bar-lbl">f-kley</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--orange)" data-w="82">82%</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">bm-mich</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--orange)" data-w="45">45%</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">E&amp;_Pop097</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--orange)" data-w="12">12%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Free % -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Top — Free Units %</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-row">
+              <span class="bar-lbl">f-kley</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--green)" data-w="18">18%</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">bm-mich</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--green)" data-w="55">55%</div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-lbl">E&amp;_Pop097</span>
+              <div class="bar-track">
+                <div class="bar-fill" style="background:var(--green)" data-w="88">88%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /bottom-row -->
+
+    </main><!-- /main -->
+
+    <!-- ── RIGHT SIDEBAR ── -->
+    <aside class="sidebar">
+
+      <div class="sb-section">
+        <div class="sb-title">Facility Filter</div>
+        <div class="filter-wrap">
+          <input class="filter-input" type="text" placeholder="Search facilities…">
+          <svg class="filter-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-title">Inventory</div>
+        <div class="stat-list">
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--teal-dim);color:var(--teal)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                </svg>
+              </div>
+              <span class="stat-name">Facilities</span>
+            </div>
+            <span class="stat-val">3</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--blue-dim);color:var(--blue)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              </div>
+              <span class="stat-name">Floors</span>
+            </div>
+            <span class="stat-val">4</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--amber-dim);color:var(--amber)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+              </div>
+              <span class="stat-name">Rooms</span>
+            </div>
+            <span class="stat-val">9</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--surface-3);color:var(--text-2)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12,5 19,12 12,19"/>
+                </svg>
+              </div>
+              <span class="stat-name">Rows</span>
+            </div>
+            <span class="stat-val">21</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--surface-3);color:var(--text-2)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
+                </svg>
+              </div>
+              <span class="stat-name">Zones</span>
+            </div>
+            <span class="stat-val">7</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--surface-3);color:var(--text-2)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 9V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/>
+                  <rect x="2" y="9" width="20" height="11" rx="1"/>
+                </svg>
+              </div>
+              <span class="stat-name">Desks</span>
+            </div>
+            <span class="stat-val">2</span>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-left">
+              <div class="stat-icon" style="background:var(--orange-dim);color:var(--orange)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="20" height="8" rx="2"/>
+                  <rect x="2" y="14" width="20" height="8" rx="2"/>
+                  <line x1="6" y1="6" x2="6.01" y2="6" stroke-width="3" stroke-linecap="round"/>
+                  <line x1="6" y1="18" x2="6.01" y2="18" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="stat-name">Racks</span>
+            </div>
+            <span class="stat-val">142</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Utilization ring -->
+      <div class="sb-section">
+        <div class="sb-title">Rack Utilization</div>
+        <div class="util-wrap">
+          <!-- r=30, C=188.5 -->
+          <svg width="78" height="78" viewBox="0 0 78 78">
+            <circle cx="39" cy="39" r="30" fill="none" stroke="var(--surface-3)" stroke-width="9"/>
+            <circle class="util-ring-seg"
+              cx="39" cy="39" r="30" fill="none"
+              stroke="var(--orange)" stroke-width="9"
+              stroke-dasharray="0 188.5"
+              stroke-linecap="round"
+              transform="rotate(-90 39 39)"
+              data-used="11.1"/>
+            <!-- Green arc for free -->
+            <circle cx="39" cy="39" r="30" fill="none"
+              stroke="var(--blue)" stroke-width="9" opacity="0.18"
+              stroke-dasharray="177.4 188.5"
+              stroke-dashoffset="-11.1"
+              stroke-linecap="round"
+              transform="rotate(-90 39 39)"/>
+            <text x="39" y="35" text-anchor="middle" fill="var(--text-1)"
+              font-family="JetBrains Mono,monospace" font-size="11" font-weight="700">5.9%</text>
+            <text x="39" y="46" text-anchor="middle" fill="var(--text-3)"
+              font-family="DM Sans,sans-serif" font-size="7.5">used</text>
+          </svg>
+          <div class="util-metrics">
+            <div>
+              <div class="util-metric-label">Used</div>
+              <div class="util-metric-val" style="color:var(--orange)">387 U</div>
+            </div>
+            <div>
+              <div class="util-metric-label">Free</div>
+              <div class="util-metric-val" style="color:var(--blue)">6,180 U</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Power bar -->
+      <div class="sb-section">
+        <div class="sb-title">Power Utilization</div>
+        <div class="power-bar-wrap">
+          <div class="power-bar-header">
+            <span style="font-size:12px;color:var(--text-3)">Current load</span>
+            <span class="power-bar-pct">15.0%</span>
+          </div>
+          <div class="power-bar-track">
+            <div class="power-bar-fill" data-w="15"></div>
+          </div>
+          <div class="power-bar-footer">
+            <span>106.34 KW</span>
+            <span>710 KW cap.</span>
+          </div>
+        </div>
+      </div>
+
+    </aside><!-- /sidebar -->
+
+  </div><!-- /body -->
+</div><!-- /app -->
+
+<script>
+  /* ── Number counter ── */
+  function countUp(el, target, duration) {
+    const start = performance.now();
+    (function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      const e = 1 - Math.pow(1 - p, 3); // ease-out-cubic
+      el.textContent = Math.round(e * target).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    })(start);
+  }
+
+  /* ── Animate on load ── */
+  window.addEventListener('load', () => {
+
+    // KPI number counters
+    document.querySelectorAll('[data-count]').forEach((el, i) => {
+      setTimeout(() => countUp(el, +el.dataset.count, 1200), 150 + i * 90);
+    });
+
+    // KPI progress bars
+    document.querySelectorAll('.kpi-bar-fill[data-w]').forEach((el, i) => {
+      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 400 + i * 80);
+    });
+
+    // Donut segments (full 276.46 circumference)
+    document.querySelectorAll('.donut-seg[data-full]').forEach((el, i) => {
+      setTimeout(() => {
+        const c = +el.dataset.full;
+        el.setAttribute('stroke-dasharray', c + ' 0');
+      }, 350 + i * 120);
+    });
+
+    // Utilization ring (5.89% of 188.5 = 11.1)
+    document.querySelectorAll('.util-ring-seg[data-used]').forEach(el => {
+      setTimeout(() => {
+        const used = +el.dataset.used;
+        el.setAttribute('stroke-dasharray', used + ' ' + (188.5 - used));
+      }, 500);
+    });
+
+    // Bar fills
+    document.querySelectorAll('.bar-fill[data-w]').forEach((el, i) => {
+      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 500 + i * 60);
+    });
+
+    // Power bar
+    document.querySelectorAll('.power-bar-fill[data-w]').forEach(el => {
+      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, 600);
+    });
+
+  });
+</script>
+</body>
+</html>

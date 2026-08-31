@@ -1,0 +1,7 @@
+Job View|cap_job_view.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/Job%20View
+Resource View|cap_resource_view.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/Resource%20View
+Ops Board|cap_ops_board.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/Ops%20Board
+Search Jobs|cap_search_jobs.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/Search%20Jobs
+Recurring Job View|cap_recurring_job_view.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/Recurring%20Job%20View
+App Configuration|cap_app_configuration.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/App%20Configuration
+About|cap_about.png|https://ziine-ziine.on.dataminer.services/app/ab26de0d-b0d7-456c-9c7b-155008a5cbc9/About
