@@ -61,7 +61,8 @@ gh extension install github/gh-aw
   gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
 }
 
-# After all workflows are added, prompt once for any missing secrets
+# After all workflows are added, prompt once for any workflow-specific secrets
+# (for example, the Collaboration API credentials)
 gh aw secrets bootstrap
 
 # Review what changed
@@ -116,7 +117,8 @@ gh aw upgrade                       # Upgrade to the latest gh-aw engine version
   gh aw add "SkylineCommunications/_ReusableAgenticWorkflows/$_" --engine copilot
 }
 
-# After all workflows are added, prompt once for any missing secrets
+# After all workflows are added, prompt once for any workflow-specific secrets
+# (for example, the Collaboration API credentials)
 gh aw secrets bootstrap
 
 # Review what changed
