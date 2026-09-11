@@ -27,15 +27,17 @@ This walks you through adding the workflow to your repository.
 
 ### Secrets
 
-| Secret                 | Purpose                                              |
-|------------------------|------------------------------------------------------|
-| `COPILOT_GITHUB_TOKEN` | Required by the `gh aw` engine to run the Copilot-powered agent. The installer creates or reuses this automatically. |
+No personal access token is required. The workflow uses the built-in GitHub
+Actions token and requests organization-billed Copilot usage through
+`copilot-requests: write` in the workflow permissions.
 
 ### Permissions
 
-| Permission  | Level      | Purpose                                                       |
-|-------------|------------|---------------------------------------------------------------|
-| `read-all`  | (all read) | Read repository contents and issues                           |
+| Permission          | Level   | Purpose                                |
+|---------------------|---------|----------------------------------------|
+| `contents`          | `read`  | Read repository contents               |
+| `issues`            | `read`  | Read and manage Catalog validation issues |
+| `copilot-requests`  | `write` | Bill Copilot CLI requests to the organization |
 
 The `safe-outputs: create-issue` declaration authorizes the engine to open issues in a controlled way — no explicit write permission is required in the permissions block.
 

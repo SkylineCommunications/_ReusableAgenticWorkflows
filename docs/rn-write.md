@@ -33,24 +33,20 @@ gh aw compile .github/workflows/rn-write.md
 
 This generates the final `.github/workflows/rn-write.yml` GitHub Actions file that GitHub actually executes. Re-run this command whenever `rn-write.md` is updated.
 
-### 4. Create the `COPILOT_GITHUB_TOKEN` secret
+### 4. Enable organization-billed Copilot requests
 
-The `gh aw` engine requires a personal fine-grained access token with a Copilot license to run the AI agent.
+No personal access token is required. In the organization’s Copilot settings,
+enable **Allow use of Copilot CLI billed to the organization**. This is enabled
+by default when the existing **Copilot CLI** policy is enabled.
 
-**Step 1 — Create the personal access token:**
+The workflow requests this billing mode with `copilot-requests: write` and uses
+the built-in GitHub Actions token. Make sure the latest `gh-aw` extension is
+installed and recompile the workflow after updates:
 
-1. Go to **GitHub → Your profile → Settings → Developer settings → Personal access tokens → Fine-grained tokens**
-2. Click **Generate new token**
-3. Under **Permissions**, find **Copilot Requests** and set it to **Read-only**
-4. Click **Generate token** and **copy the value immediately** — you cannot retrieve it later. If you lose it, you must regenerate the token and update the secret.
-
-**Step 2 — Add the token as a repository secret:**
-
-1. Go to the target repository → **Settings → Secrets and variables → Actions → Repository secrets**
-2. Click **New repository secret**
-3. Name: `COPILOT_GITHUB_TOKEN`
-4. Value: paste the token copied in Step 1
-5. Click **Add secret**
+```bash
+gh extension upgrade aw
+gh aw compile .github/workflows/rn-write.md
+```
 
 ### 5. Create the `rn-request` label
 
@@ -81,12 +77,6 @@ This means any update to [`agents/rn-write.agent.md`](../agents/rn-write.agent.m
 | `rn-proposal` | Workflow (auto) | Signals that draft release note comments are posted and ready for human review |
 | `rn-request`  | Manual (once) | Triggers (re)generation of a release note on an already-merged PR |
 
-### Secrets
-
-| Secret                 | Purpose                                              |
-|------------------------|------------------------------------------------------|
-| `COPILOT_GITHUB_TOKEN` | Fine-grained PAT with Copilot read permission, required by the `gh aw` engine |
-
 ### Permissions
 
 | Permission      | Level   | Purpose                                           |
@@ -94,6 +84,7 @@ This means any update to [`agents/rn-write.agent.md`](../agents/rn-write.agent.m
 | `contents`      | `read`  | Required by the engine (no checkout performed)    |
 | `issues`        | `read`  | Read linked issues for context                    |
 | `pull-requests` | `read`  | Read PR diff and metadata                         |
+| `copilot-requests` | `write` | Bill Copilot CLI requests to the organization     |
 
 The `safe-outputs` declarations (`add-comment`, `add-labels`, `remove-labels`) authorize the engine to post comments and manage labels — no explicit write permission is needed in the permissions block.
 

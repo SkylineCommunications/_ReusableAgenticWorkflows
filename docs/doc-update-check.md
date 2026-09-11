@@ -31,9 +31,9 @@ This walks you through adding the workflow to your repository.
 
 ### Secrets
 
-| Secret                 | Purpose                                              |
-|------------------------|------------------------------------------------------|
-| `COPILOT_GITHUB_TOKEN` | Required by the `gh aw` engine to run the Copilot-powered agent. The installer creates or reuses this automatically. |
+No personal access token is required. The workflow uses the built-in GitHub
+Actions token and requests organization-billed Copilot usage through
+`copilot-requests: write` in the workflow permissions.
 
 ### Permissions
 

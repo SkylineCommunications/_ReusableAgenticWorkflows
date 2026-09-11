@@ -11,7 +11,10 @@ on:
   issues:
     types: [labeled]
 
-permissions: read-all
+permissions:
+  contents: read
+  issues: read
+  copilot-requests: write
 
 network: defaults
 
