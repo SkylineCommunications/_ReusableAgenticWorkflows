@@ -107,7 +107,7 @@ The workflow can be triggered in three ways:
 The workflow fires when a draft PR transitions to ready for review. It generates draft release-note comments so they can be reviewed and refined before the PR is merged.
 
 **2. A pull request is merged**
-The workflow fires on the `closed` event. The agent checks whether the PR was actually merged (`merged == true`) and proceeds only if it was. Closing a PR without merging produces no output.
+The workflow fires on the `closed` event. It first checks for an existing `## 📋 Release Note` comment created when the PR became ready for review. When one exists, it produces no second comment. If no release note exists, it generates one so the original merged-PR behavior remains available for PRs that were never marked ready for review.
 
 **3. Adding the `rn-request` label to an already-merged PR**
 Adding `rn-request` to a PR that has already been merged and closed triggers the workflow and (re)generates the release note. This is useful for backfilling release notes or forcing a regeneration when the original output needs replacing.
