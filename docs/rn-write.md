@@ -2,10 +2,10 @@
 
 > For an overview of all available workflows, see the [main README](../README.md).
 
-**Automated release note entry written when a pull request is merged**
+**Automated release note entry written when a pull request is ready for review or merged**
 
 The [RN Write workflow](../workflows/rn-write.md?plain=1)
-triggers when a pull request is merged. It reads the diff and any linked issues,
+triggers when a pull request is ready for review or merged. It reads the diff and any linked issues,
 then posts one or more plain-language release note comments — written for a
 changelog audience (product owners, technical writers, end-users) rather than
 for PR reviewers. A separate comment is posted for each distinct feature, fix,
@@ -101,12 +101,15 @@ The `safe-outputs` declarations (`add-comment`, `add-labels`, `remove-labels`) a
 
 ### Activation
 
-The workflow can be triggered in two ways:
+The workflow can be triggered in three ways:
 
-**1. A pull request is merged**
+**1. A pull request is marked ready for review**
+The workflow fires when a draft PR transitions to ready for review. It generates draft release-note comments so they can be reviewed and refined before the PR is merged.
+
+**2. A pull request is merged**
 The workflow fires on the `closed` event. The agent checks whether the PR was actually merged (`merged == true`) and proceeds only if it was. Closing a PR without merging produces no output.
 
-**2. Adding the `rn-request` label to an already-merged PR**
+**3. Adding the `rn-request` label to an already-merged PR**
 Adding `rn-request` to a PR that has already been merged and closed triggers the workflow and (re)generates the release note. This is useful for backfilling release notes or forcing a regeneration when the original output needs replacing.
 
 > ⚠️ **Adding `rn-request` to an open PR does not trigger the workflow.** The activation guard requires `merged == true` — a PR that is still open does not satisfy this condition and the workflow will call `noop` immediately without generating anything.
@@ -164,8 +167,8 @@ The `## 📋 Release Note` heading is what the publish workflow uses to locate t
 
 ### End-to-end flow
 
-1. **PR is merged** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, applies the `rn-proposal` label, and removes the `rn-request` label.
-2. **Human reviews** — open the closed PR, read the generated comment. If corrections are needed, edit the comment directly on GitHub. The publish step reads whatever text is in the comment at the moment the label is applied.
+1. **PR is ready for review** — the `rn-write` workflow triggers, generates the release note, posts it as a comment, and applies the `rn-proposal` label.
+2. **Human reviews** — read the generated comment before merging. If corrections are needed, edit the comment directly on GitHub. The publish step reads whatever text is in the comment at the moment the label is applied.
 3. **Human approves** — add the `rn-publish` label to the PR.
 4. **Publish workflow runs** — a GitHub Action triggers on `pull_request: labeled` where `label.name == 'rn-publish'`. It finds **all** PR comments containing `## 📋 Release Note` and processes each one: validates the metadata, pushes to the release note platform, and edits the comment in-place to append the published URL and an idempotency marker. Re-triggering `rn-publish` updates existing entries rather than creating duplicates.
 5. **Cleanup** — the publish workflow removes the `rn-proposal` and `rn-publish` labels and applies `rn-published` to the PR, marking it as done.
